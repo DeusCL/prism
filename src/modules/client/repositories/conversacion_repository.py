@@ -1,6 +1,6 @@
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from src.infrastructure.database.models import Conversacion, EstadoConversacionEnum
 
@@ -16,8 +16,26 @@ class ConversacionRepository:
         conversacion = Conversacion(**conversation_data)
         self.db.add(conversacion)
         await self.db.flush()
-        await self.db.refresh(conversacion)
         return conversacion
+
+
+    async def create_and_get_id(self, conversation_data: dict) -> Tuple[Conversacion, int]:
+        """Crea una conversación y retorna tanto el objeto como el ID de forma segura"""
+
+        conversacion = Conversacion(**conversation_data)
+        self.db.add(conversacion)
+        await self.db.flush()
+
+        # Hacer una consulta separada para obtener el ID del último registro insertado
+        # Esto evita el problema de greenlet
+        result = await self.db.execute(
+            text("SELECT LAST_INSERT_ID()")  # Para MySQL
+            # Para PostgreSQL usarías: text("SELECT lastval()")
+            # Para SQLite usarías: text("SELECT last_insert_rowid()")
+        )
+        conversation_id = result.scalar()
+
+        return conversacion, conversation_id
 
 
     async def get_active_by_client(self, client_id: int) -> Optional[Conversacion]:
@@ -46,7 +64,7 @@ class ConversacionRepository:
         ).order_by(Conversacion.updated_at.desc())
 
         result = await self.db.execute(query)
-        return result.scalars().all()
+        return list(result.scalars().all())
 
 
     async def update(self, conversation_id: int, update_data: dict) -> Optional[Conversacion]:
@@ -61,7 +79,6 @@ class ConversacionRepository:
                 setattr(conversation, key, value)
 
         await self.db.flush()
-        await self.db.refresh(conversation)
         return conversation
 
 

@@ -111,6 +111,7 @@
             flex: 1;
             display: flex;
             flex-direction: column;
+            overflow-y: auto;
             background: #e5ddd5;
             background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="40" height="40" fill="%23e5ddd5"/><circle cx="20" cy="20" r="1" fill="%23ffffff" opacity="0.1"/></svg>');
         }
@@ -310,6 +311,26 @@
                 opacity: 1;
             }
         }
+
+        /* Status messages */
+        .status-message {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+        }
+
+        .status-message.show {
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
@@ -379,6 +400,9 @@
                 </button>
             </div>
         </div>
+
+        <!-- Status indicator -->
+        <div class="status-message" id="statusMessage"></div>
     </div>
 
     <!-- Incluir el cliente WebSocket -->
@@ -387,9 +411,8 @@
     <script>
         // Variables globales
         let currentClient = null;
-        let messageHistory = {};
-        let isConnected = true;
         let chatClient = null;
+        let isConnected = false;
 
         // Clientes predefinidos
         const clients = {
@@ -405,6 +428,8 @@
         });
 
         function initializeApp() {
+            console.log('🚀 Iniciando Simulador de Cliente');
+
             // Event listeners para selección de cliente
             document.querySelectorAll('.client-card').forEach(card => {
                 card.addEventListener('click', function() {
@@ -425,11 +450,12 @@
                 }
             });
 
-            // Simular estado de conexión
-            updateConnectionStatus();
+            console.log('✅ Simulador inicializado');
         }
 
         function selectClient(clientId) {
+            console.log(`🎯 Seleccionando cliente ${clientId}`);
+
             // Actualizar UI
             document.querySelectorAll('.client-card').forEach(card => {
                 card.classList.remove('active');
@@ -440,15 +466,25 @@
             currentClient = clientId;
             const client = clients[clientId];
 
+            // Desconectar cliente anterior si existe
+            if (chatClient) {
+                chatClient.disconnect();
+            }
+
             // Inicializar WebSocket para este cliente
             if (window.PrismChat && window.PrismChat.isWebSocketSupported()) {
-                if (chatClient) {
-                    chatClient.disconnect();
-                }
                 chatClient = window.PrismChat.createMobileClient(clientId, client.name);
+
+                // Configurar callbacks
+                chatClient.onConnect = handleWebSocketConnect;
+                chatClient.onDisconnect = handleWebSocketDisconnect;
+                chatClient.onMessage = handleWebSocketMessage;
+                chatClient.onError = handleWebSocketError;
+
                 console.log(`✅ WebSocket iniciado para ${client.name}`);
             } else {
                 console.error('❌ WebSocket no soportado');
+                showStatus('WebSocket no soportado', 'error');
             }
 
             // Habilitar input
@@ -462,90 +498,121 @@
             // Ocultar mensaje de no selección
             document.getElementById('noClientSelected').style.display = 'none';
 
-            // Cargar historial de mensajes
-            loadMessageHistory(clientId);
+            // Limpiar mensajes previos
+            const container = document.getElementById('messagesContainer');
+            container.innerHTML = '';
 
             // Focus en input
             messageInput.focus();
 
-            console.log(`Cliente seleccionado: ${client.name} (ID: ${clientId})`);
+            showStatus(`Conectado como ${client.name}`, 'success');
         }
 
-        function loadMessageHistory(clientId) {
-            const container = document.getElementById('messagesContainer');
+        // Manejar conexión WebSocket
+        function handleWebSocketConnect() {
+            console.log('✅ Cliente conectado al WebSocket');
+            isConnected = true;
+            updateConnectionStatus(true);
+            showStatus('Conectado al servidor', 'success');
+        }
 
-            // Limpiar contenedor
-            container.innerHTML = '';
+        // Manejar desconexión WebSocket
+        function handleWebSocketDisconnect() {
+            console.log('❌ Cliente desconectado del WebSocket');
+            isConnected = false;
+            updateConnectionStatus(false);
+            showStatus('Desconectado del servidor', 'error');
+        }
 
-            // Cargar mensajes existentes si los hay
-            if (messageHistory[clientId]) {
-                messageHistory[clientId].forEach(message => {
-                    displayMessage(message.text, message.type, message.time, message.isAI);
-                });
+        // Manejar errores WebSocket
+        function handleWebSocketError(error) {
+            console.error('❌ Error WebSocket:', error);
+            showStatus('Error de conexión', 'error');
+        }
+
+        // Manejar mensajes del WebSocket
+        function handleWebSocketMessage(data) {
+            console.log('📨 Cliente recibió:', data);
+
+            switch(data.type) {
+                case 'admin_response':
+                    handleAdminResponse(data);
+                    break;
+                case 'connection_established':
+                    console.log('🎉 Conexión establecida:', data.message);
+                    break;
+                default:
+                    console.log('🤷 Tipo de mensaje no manejado:', data.type);
             }
+        }
 
-            // Scroll al final
-            container.scrollTop = container.scrollHeight;
+        // Manejar respuesta del administrador
+        function handleAdminResponse(data) {
+            console.log('👨‍💼 Respuesta del admin recibida:', data);
+
+            if (data.message) {
+                displayMessage(data.message, 'received');
+            }
         }
 
         function sendMessage() {
             const input = document.getElementById('messageInput');
             const messageText = input.value.trim();
 
-            if (!messageText || !currentClient || !chatClient) return;
-
-            // Enviar a través del WebSocket usando el método específico de la clase
-            if (chatClient && typeof chatClient.sendClientMessage === 'function') {
-                chatClient.sendClientMessage();
-            } else {
-                // Fallback manual si WebSocket no está disponible
-                const timestamp = new Date().toLocaleTimeString('es-ES', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-
-                const message = {
-                    text: messageText,
-                    type: 'sent',
-                    time: timestamp,
-                    isAI: false
-                };
-
-                // Guardar en historial local
-                if (!messageHistory[currentClient]) {
-                    messageHistory[currentClient] = [];
+            if (!messageText || !currentClient || !chatClient || !isConnected) {
+                if (!isConnected) {
+                    showStatus('No conectado al servidor', 'error');
                 }
-                messageHistory[currentClient].push(message);
-
-                // Mostrar mensaje localmente
-                displayMessage(messageText, 'sent', timestamp, false);
-
-                // Limpiar input
-                input.value = '';
-
-                // Enviar al sistema principal (simulado)
-                sendToMainSystem({
-                    clientId: currentClient,
-                    clientName: clients[currentClient].name,
-                    message: messageText,
-                    timestamp: timestamp,
-                    type: 'new_client_message'
-                });
+                return;
             }
+
+            console.log(`📤 Enviando mensaje: ${messageText}`);
+
+            // Mostrar mensaje localmente primero
+            const timestamp = new Date().toLocaleTimeString('es-ES', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            displayMessage({
+                content: messageText,
+                sender: clients[currentClient].name,
+                timestamp: new Date().toISOString(),
+                message_type: 'cliente'
+            }, 'sent');
+
+            // Enviar a través del WebSocket
+            chatClient.send({
+                type: "new_client_message",
+                client_id: currentClient,
+                client_name: clients[currentClient].name,
+                message: messageText,
+                timestamp: new Date().toISOString()
+            });
+
+            // Limpiar input
+            input.value = '';
+
+            showStatus('Mensaje enviado', 'success');
         }
 
-        function displayMessage(text, type, time, isAI = false) {
+        function displayMessage(message, type) {
             const container = document.getElementById('messagesContainer');
 
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}`;
 
-            const aiBadge = isAI ? '<span class="ai-badge">IA</span>' : '';
+            const timeString = new Date(message.timestamp).toLocaleTimeString('es-ES', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            const aiBadge = message.message_type === 'ia' ? '<span class="ai-badge">IA</span>' : '';
 
             messageDiv.innerHTML = `
                 <div class="message-bubble">
-                    ${text}
-                    <div class="message-time">${time}${aiBadge}</div>
+                    ${message.content}
+                    <div class="message-time">${timeString}${aiBadge}</div>
                 </div>
             `;
 
@@ -553,98 +620,32 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        function showTypingIndicator() {
-            const indicator = document.getElementById('typingIndicator');
-            indicator.style.display = 'flex';
-
-            // Ocultar después de 2 segundos
-            setTimeout(() => {
-                indicator.style.display = 'none';
-            }, 2000);
-        }
-
-        // Función para recibir respuestas de la IA (llamada desde el sistema principal)
-        function receiveAIResponse(response) {
-            if (response.clientId == currentClient) {
-                const timestamp = new Date().toLocaleTimeString('es-ES', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-
-                const message = {
-                    text: response.message,
-                    type: 'received',
-                    time: timestamp,
-                    isAI: true
-                };
-
-                // Guardar en historial
-                if (!messageHistory[currentClient]) {
-                    messageHistory[currentClient] = [];
-                }
-                messageHistory[currentClient].push(message);
-
-                // Mostrar mensaje
-                displayMessage(response.message, 'received', timestamp, true);
-            }
-        }
-
-        // Función para enviar datos al sistema principal
-        function sendToMainSystem(data) {
-            // Aquí implementarías la conexión con tu backend/sistema principal
-            console.log('Enviando al sistema principal:', data);
-
-            // Ejemplo de implementación con WebSocket:
-            // if (websocket && websocket.readyState === WebSocket.OPEN) {
-            //     websocket.send(JSON.stringify(data));
-            // }
-
-            // Ejemplo de implementación con fetch:
-            // fetch('/api/new-message', {
-            //     method: 'POST',
-            //     headers: { 'Content-Type': 'application/json' },
-            //     body: JSON.stringify(data)
-            // });
-        }
-
-        function updateConnectionStatus() {
+        function updateConnectionStatus(connected) {
             const status = document.getElementById('connectionStatus');
-
-            if (isConnected) {
+            if (connected) {
                 status.classList.remove('disconnected');
             } else {
                 status.classList.add('disconnected');
             }
         }
 
-        // Función para simular desconexión (para testing)
-        function toggleConnection() {
-            isConnected = !isConnected;
-            updateConnectionStatus();
-            console.log(`Estado de conexión: ${isConnected ? 'Conectado' : 'Desconectado'}`);
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.textContent = message;
+            statusDiv.className = `status-message show ${type}`;
+
+            setTimeout(() => {
+                statusDiv.classList.remove('show');
+            }, 3000);
         }
 
-        // Funciones de utilidad para la demostración
-        function addNewClient(name, id) {
-            if (!clients[id]) {
-                clients[id] = {
-                    name: name,
-                    avatar: name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2),
-                    type: 'nuevo'
-                };
-                console.log(`Cliente ${name} (ID: ${id}) agregado al sistema`);
-            }
-        }
-
-        // Exponer funciones globalmente para debugging/testing
+        // Funciones de utilidad para debugging/testing
         window.BiplanClientSimulator = {
             selectClient,
             sendMessage,
-            receiveAIResponse,
-            toggleConnection,
-            addNewClient,
             getCurrentClient: () => currentClient,
-            getMessageHistory: () => messageHistory
+            isConnected: () => isConnected,
+            getClients: () => clients
         };
     </script>
 </body>

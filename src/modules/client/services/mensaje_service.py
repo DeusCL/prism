@@ -2,6 +2,7 @@ from typing import List, Dict, Any
 
 from src.modules.client.repositories import MensajeRepository
 from src.infrastructure.database.models import Mensaje, TipoMensajeEnum
+from src.shared.utils.timing import now
 
 
 
@@ -11,7 +12,7 @@ class MensajeService:
 
 
     async def create_message(self, message_data: Dict[str, Any]) -> Mensaje:
-        """Crea un nuevo mensaje"""
+        """Crea un nuevo mensaje de forma segura"""
 
         # Validaciones básicas
         if not message_data.get("contenido", "").strip():
@@ -20,16 +21,17 @@ class MensajeService:
         if not message_data.get("id_conversacion"):
             raise ValueError("ID de conversación es requerido")
 
-        # Procesar datos
+        # Procesar datos con timestamp explícito
         processed_data = {
             "id_conversacion": message_data["id_conversacion"],
             "contenido": message_data["contenido"].strip(),
             "tipo": TipoMensajeEnum(message_data.get("tipo", "cliente")),
             "remitente": message_data.get("remitente", "Usuario"),
-            "es_derivacion": message_data.get("es_derivacion", False)
+            "es_derivacion": message_data.get("es_derivacion", False),
+            "timestamp": now()  # Siempre establecer explícitamente
         }
 
-        # Crear mensaje
+        # Crear mensaje sin acceder a propiedades que causen refresh
         mensaje = await self.mensaje_repository.create(processed_data)
         await self.mensaje_repository.commit()
 
@@ -43,7 +45,6 @@ class MensajeService:
         offset: int = 0
     ) -> List[Mensaje]:
         """Obtiene mensajes de una conversación"""
-
         return await self.mensaje_repository.get_by_conversation(
             conversation_id, limit=limit, offset=offset
         )

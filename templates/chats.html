@@ -32,11 +32,27 @@
             border-bottom: 1px solid #e5e7eb;
             background: #075e54;
             color: white;
+            position: relative;
         }
 
         .sidebar-header h2 {
             font-size: 18px;
             font-weight: 500;
+        }
+
+        .connection-indicator {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #25d366;
+            border: 2px solid white;
+        }
+
+        .connection-indicator.disconnected {
+            background: #f44336;
         }
 
         .chat-list {
@@ -49,6 +65,7 @@
             border-bottom: 1px solid #f1f1f1;
             cursor: pointer;
             transition: background 0.2s;
+            position: relative;
         }
 
         .chat-item:hover {
@@ -86,6 +103,21 @@
         .status-human {
             background: #fff3e0;
             color: #ef6c00;
+        }
+
+        .chat-item.has-new-message {
+            background: #e3f2fd;
+            border-left: 4px solid #075e54;
+        }
+
+        .chat-item.has-new-message::after {
+            content: '●';
+            color: #075e54;
+            font-size: 12px;
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
         }
 
         /* Panel principal */
@@ -179,25 +211,6 @@
             text-align: right;
         }
 
-        .chat-item.has-new-message {
-            background: #e3f2fd;
-            border-left: 4px solid #075e54;
-        }
-
-        .chat-item.has-new-message::after {
-            content: '●';
-            color: #075e54;
-            font-size: 12px;
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-
-        .chat-item {
-            position: relative;
-        }
-
         .ai-indicator {
             background: #25d366;
             color: white;
@@ -225,6 +238,11 @@
             font-size: 14px;
         }
 
+        .message-input:disabled {
+            background: #f5f5f5;
+            color: #999;
+        }
+
         .send-btn {
             background: #075e54;
             color: white;
@@ -236,79 +254,84 @@
             transition: background 0.2s;
         }
 
-        .send-btn:hover {
+        .send-btn:hover:not(:disabled) {
             background: #128c7e;
         }
 
-        /* Panel de configuración */
-        .config-panel {
-            width: 350px;
-            background: white;
-            border-left: 1px solid #e5e7eb;
-            padding: 20px;
-            display: none;
-            overflow-y: auto;
+        .send-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
         }
 
-        .config-panel.active {
-            display: block;
-        }
-
-        .config-section {
-            margin-bottom: 25px;
-        }
-
-        .config-section h4 {
-            margin-bottom: 10px;
-            color: #333;
-            font-size: 14px;
-        }
-
-        .config-input {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 13px;
-            margin-bottom: 10px;
-        }
-
-        .config-textarea {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 13px;
-            resize: vertical;
-            height: 80px;
-        }
-
-        .config-range {
-            width: 100%;
-            margin: 5px 0;
-        }
-
-        .range-label {
+        /* Estado sin chat seleccionado */
+        .no-chat-selected {
             display: flex;
-            justify-content: space-between;
-            font-size: 12px;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
             color: #666;
-            margin-bottom: 5px;
+            text-align: center;
+            padding: 40px;
         }
 
-        .save-config {
+        .no-chat-selected .icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        /* Loading state */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #666;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #075e54;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Error messages */
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin: 10px 20px;
+            border-left: 4px solid #c62828;
+        }
+
+        /* Status indicators */
+        .status-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
             background: #075e54;
             color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 10px;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
         }
 
-        .save-config:hover {
-            background: #128c7e;
+        .status-indicator.show {
+            opacity: 1;
         }
     </style>
 </head>
@@ -317,19 +340,12 @@
     <div class="sidebar">
         <div class="sidebar-header">
             <h2>Biplan Chat</h2>
+            <div class="connection-indicator" id="connectionIndicator"></div>
         </div>
-        <div class="chat-list">
-            <div class="chat-item active" data-chat="1">
-                <h4>Juan Pérez <span class="chat-status status-ai">IA</span></h4>
-                <p>Consulta sobre declaración de renta</p>
-            </div>
-            <div class="chat-item" data-chat="2">
-                <h4>María González <span class="chat-status status-human">Humano</span></h4>
-                <p>Asesoría legal empresa</p>
-            </div>
-            <div class="chat-item" data-chat="3">
-                <h4>Carlos Rodríguez <span class="chat-status status-ai">IA</span></h4>
-                <p>Información sobre servicios</p>
+        <div class="chat-list" id="chatList">
+            <div class="loading">
+                <div class="spinner"></div>
+                Cargando conversaciones...
             </div>
         </div>
     </div>
@@ -337,184 +353,100 @@
     <!-- Panel principal -->
     <div class="main-panel">
         <div class="chat-header">
-            <h3 id="current-chat">Juan Pérez</h3>
-            <button class="config-btn" onclick="toggleConfig()">⚙️ Configurar IA</button>
+            <h3 id="currentChatTitle">Selecciona una conversación</h3>
+            <button class="config-btn" onclick="refreshConversations()">🔄 Actualizar</button>
         </div>
 
         <div class="chat-container">
-            <div class="messages" id="messages">
-                <!-- Chat 1 - Juan Pérez -->
-                <div class="chat-messages" id="chat-1">
-                    <div class="message received">
-                        <div class="message-bubble">
-                            Hola, necesito información sobre la declaración de renta para este año
-                            <div class="message-info">
-                                Juan Pérez • 10:30 AM <span class="ai-indicator">IA</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="message sent">
-                        <div class="message-bubble">
-                            ¡Hola Juan! Te ayudo con la declaración de renta. Para personas naturales, el plazo vence en abril. ¿Eres empleado o tienes ingresos independientes?
-                            <div class="message-info">IA Biplan • 10:31 AM</div>
-                        </div>
-                    </div>
-                    <div class="message received">
-                        <div class="message-bubble">
-                            Soy empleado pero también tengo algunos ingresos como freelancer
-                            <div class="message-info">Juan Pérez • 10:32 AM</div>
-                        </div>
-                    </div>
-                    <div class="message sent">
-                        <div class="message-bubble">
-                            Perfecto. Al tener ingresos mixtos, necesitarás documentación específica. Te voy a transferir con nuestro especialista tributario para que te asesore correctamente.
-                            <div class="message-info">IA Biplan • 10:33 AM</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Chat 2 - María González -->
-                <div class="chat-messages" id="chat-2" style="display: none;">
-                    <div class="message received">
-                        <div class="message-bubble">
-                            Buenos días, necesito asesoría para constituir una empresa
-                            <div class="message-info">María González • 09:15 AM</div>
-                        </div>
-                    </div>
-                    <div class="message sent">
-                        <div class="message-bubble">
-                            Buenos días María. Te ayudo con el proceso de constitución. ¿Qué tipo de empresa quieres constituir? SAS, Ltda, etc.
-                            <div class="message-info">Consultor Legal • 09:18 AM</div>
-                        </div>
-                    </div>
-                    <div class="message received">
-                        <div class="message-bubble">
-                            Una SAS para servicios de consultoría
-                            <div class="message-info">María González • 09:20 AM</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Chat 3 - Carlos Rodríguez -->
-                <div class="chat-messages" id="chat-3" style="display: none;">
-                    <div class="message received">
-                        <div class="message-bubble">
-                            Hola, ¿qué servicios ofrecen?
-                            <div class="message-info">Carlos Rodríguez • 11:45 AM <span class="ai-indicator">IA</span></div>
-                        </div>
-                    </div>
-                    <div class="message sent">
-                        <div class="message-bubble">
-                            ¡Hola Carlos! En Biplan ofrecemos: Consultoría Contable, Asesoría Legal, Consultoría Financiera, Asesoría Tributaria y Auditorías. ¿En cuál área te interesa recibir información?
-                            <div class="message-info">IA Biplan • 11:46 AM</div>
-                        </div>
-                    </div>
+            <div class="messages" id="messagesContainer">
+                <div class="no-chat-selected" id="noChatSelected">
+                    <div class="icon">💬</div>
+                    <h3>Bienvenido al Panel de Chat</h3>
+                    <p>Selecciona una conversación para comenzar a responder</p>
                 </div>
             </div>
 
             <div class="input-area">
-                <input type="text" class="message-input" placeholder="Escribe un mensaje..." id="messageInput">
-                <button class="send-btn" onclick="sendMessage()">Enviar</button>
+                <input type="text" class="message-input" placeholder="Selecciona una conversación para responder..." id="messageInput" disabled>
+                <button class="send-btn" onclick="sendMessage()" id="sendButton" disabled>Enviar</button>
             </div>
         </div>
     </div>
 
-    <!-- Panel de configuración -->
-    <div class="config-panel" id="configPanel">
-        <h3 style="margin-bottom: 20px; color: #075e54;">Configuración de IA</h3>
-
-        <div class="config-section">
-            <h4>System Prompt</h4>
-            <textarea class="config-textarea" id="systemPrompt" placeholder="Eres un asistente de Biplan, empresa de consultoría contable, legal, financiera y tributaria...">Eres un asistente de Biplan, empresa de consultoría contable, legal, financiera y tributaria. Responde de manera profesional y amigable. Si la consulta es muy específica o técnica, deriva al cliente al área correspondiente.</textarea>
-        </div>
-
-        <div class="config-section">
-            <h4>Temperatura</h4>
-            <div class="range-label">
-                <span>Conservadora</span>
-                <span id="tempValue">0.7</span>
-                <span>Creativa</span>
-            </div>
-            <input type="range" class="config-range" id="temperature" min="0" max="1" step="0.1" value="0.7" oninput="updateTemp(this.value)">
-        </div>
-
-        <div class="config-section">
-            <h4>Tokens Mínimos</h4>
-            <input type="number" class="config-input" id="minTokens" value="50" min="10" max="500">
-        </div>
-
-        <div class="config-section">
-            <h4>Tokens Máximos</h4>
-            <input type="number" class="config-input" id="maxTokens" value="300" min="100" max="2000">
-        </div>
-
-        <div class="config-section">
-            <h4>Modelo</h4>
-            <select class="config-input" id="model">
-                <option value="gpt-4">GPT-4</option>
-                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                <option value="claude-3">Claude 3</option>
-            </select>
-        </div>
-
-        <div class="config-section">
-            <h4>Auto-derivación</h4>
-            <select class="config-input" id="autoTransfer">
-                <option value="enabled">Activada</option>
-                <option value="disabled">Desactivada</option>
-            </select>
-        </div>
-
-        <button class="save-config" onclick="saveConfig()">Guardar Configuración</button>
-    </div>
+    <!-- Status indicator -->
+    <div class="status-indicator" id="statusIndicator"></div>
 
     <!-- Incluir el cliente WebSocket -->
     <script src="/static/js/chat-websocket.js"></script>
 
     <script>
         // Variables globales
-        let currentChat = 1;
-        let configVisible = false;
         let chatClient = null;
-        let conversationMap = {}; // Mapea client_id a conversation_id
+        let currentConversationId = null;
+        let conversationData = {};
+        let isConnected = false;
 
         // Inicializar
         document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        function initializeApp() {
+            console.log('🚀 Iniciando Panel de Chat Admin');
+
             // Inicializar cliente WebSocket
             if (window.PrismChat && window.PrismChat.isWebSocketSupported()) {
                 chatClient = window.PrismChat.createAdminClient();
 
                 // Configurar callbacks específicos del admin
+                chatClient.onConnect = handleWebSocketConnect;
+                chatClient.onDisconnect = handleWebSocketDisconnect;
                 chatClient.onMessage = handleWebSocketMessage;
-                chatClient.onConnect = () => {
-                    console.log('✅ Panel admin conectado al WebSocket');
-                    updateConnectionIndicator(true);
-                };
-                chatClient.onDisconnect = () => {
-                    console.log('❌ Panel admin desconectado del WebSocket');
-                    updateConnectionIndicator(false);
-                };
+                chatClient.onError = handleWebSocketError;
 
                 console.log('✅ Cliente WebSocket iniciado para admin');
             } else {
                 console.error('❌ WebSocket no soportado');
-                showErrorMessage('Tu navegador no soporta WebSocket');
+                showError('Tu navegador no soporta WebSocket');
             }
 
             // Event listener para el input de mensaje
-            document.getElementById('messageInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
+            const messageInput = document.getElementById('messageInput');
+            messageInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !this.disabled) {
                     sendMessage();
                 }
             });
 
-            // Event listeners para los chats
-            document.querySelectorAll('.chat-item').forEach(item => {
-                item.addEventListener('click', function() {
-                    switchChat(this.dataset.chat);
-                });
-            });
-        });
+            console.log('✅ Panel de chat inicializado');
+        }
+
+        // Manejar conexión WebSocket
+        function handleWebSocketConnect() {
+            console.log('✅ Admin conectado al WebSocket');
+            isConnected = true;
+            updateConnectionIndicator(true);
+            showStatus('Conectado al servidor', 'success');
+            
+            // Solicitar conversaciones activas
+            setTimeout(() => {
+                requestActiveConversations();
+            }, 500);
+        }
+
+        // Manejar desconexión WebSocket
+        function handleWebSocketDisconnect() {
+            console.log('❌ Admin desconectado del WebSocket');
+            isConnected = false;
+            updateConnectionIndicator(false);
+            showStatus('Desconectado del servidor', 'error');
+        }
+
+        // Manejar errores WebSocket
+        function handleWebSocketError(error) {
+            console.error('❌ Error WebSocket:', error);
+            showError('Error de conexión con el servidor');
+        }
 
         // Manejar mensajes del WebSocket
         function handleWebSocketMessage(data) {
@@ -522,123 +454,220 @@
 
             switch(data.type) {
                 case 'new_message':
-                    handleNewClientMessage(data);
+                    handleNewMessage(data);
                     break;
                 case 'admin_response':
                     handleAdminResponse(data);
                     break;
+                case 'active_conversations':
+                    handleActiveConversations(data);
+                    break;
+                case 'conversation_history':
+                    handleConversationHistory(data);
+                    break;
+                case 'error':
+                    showError(data.message);
+                    break;
                 default:
-                    console.log('Tipo de mensaje no manejado:', data.type);
+                    console.log('🤷 Tipo de mensaje no manejado:', data.type);
             }
+        }
+
+        // Solicitar conversaciones activas
+        function requestActiveConversations() {
+            if (chatClient && isConnected) {
+                console.log('📋 Solicitando conversaciones activas');
+                chatClient.send({
+                    type: "get_active_conversations"
+                });
+            }
+        }
+
+        // Manejar lista de conversaciones activas
+        function handleActiveConversations(data) {
+            console.log('📋 Conversaciones activas recibidas:', data.conversations);
+            
+            const chatList = document.getElementById('chatList');
+            
+            if (data.conversations.length === 0) {
+                chatList.innerHTML = `
+                    <div class="no-chat-selected" style="padding: 40px 20px;">
+                        <div class="icon">💬</div>
+                        <h4>No hay conversaciones activas</h4>
+                        <p>Las conversaciones aparecerán aquí cuando los clientes envíen mensajes</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Renderizar conversaciones
+            let chatListHTML = '';
+            data.conversations.forEach(conv => {
+                conversationData[conv.conversation_id] = conv;
+                
+                const isActive = currentConversationId === conv.conversation_id;
+                const statusClass = conv.status === 'ia_respondiendo' ? 'status-ai' : 'status-human';
+                const statusText = conv.status === 'ia_respondiendo' ? 'IA' : 'Humano';
+                
+                chatListHTML += `
+                    <div class="chat-item ${isActive ? 'active' : ''}" 
+                         data-conversation-id="${conv.conversation_id}"
+                         data-client-id="${conv.client_id}"
+                         onclick="selectConversation(${conv.conversation_id})">
+                        <h4>${conv.client_name} <span class="chat-status ${statusClass}">${statusText}</span></h4>
+                        <p>Conversación activa</p>
+                    </div>
+                `;
+            });
+            
+            chatList.innerHTML = chatListHTML;
         }
 
         // Manejar nuevo mensaje de cliente
-        function handleNewClientMessage(data) {
-            const clientId = data.client_id;
-            const clientName = data.client_name;
-            const message = data.message;
-
+        function handleNewMessage(data) {
+            console.log('💬 Nuevo mensaje recibido:', data);
+            
             // Actualizar o crear chat en la lista
-            updateOrCreateChatItem(clientId, clientName, message.content);
-
-            // Si es el chat activo, mostrar el mensaje
-            if (currentChat == clientId) {
-                displayMessageInChat(message, 'received');
+            updateOrCreateChatItem(data.client_id, data.client_name, data.message.content);
+            
+            // Si es la conversación activa, mostrar el mensaje
+            if (currentConversationId === data.conversation_id) {
+                displayMessage(data.message, 'received');
             }
-
+            
             // Reproducir sonido de notificación
             playNotificationSound();
-
+            
             // Mostrar notificación desktop
-            showDesktopNotification(clientName, message.content);
-
-            // Mapear conversación
-            if (data.conversation_id) {
-                conversationMap[clientId] = data.conversation_id;
-            }
+            showDesktopNotification(data.client_name, data.message.content);
         }
 
-        // Manejar respuesta del admin
+        // Manejar respuesta del admin (confirmación)
         function handleAdminResponse(data) {
-            const conversationId = data.conversation_id;
-            const message = data.message;
-
-            // Encontrar el cliente por conversation_id
-            const clientId = Object.keys(conversationMap).find(
-                key => conversationMap[key] == conversationId
-            );
-
-            if (clientId && currentChat == clientId) {
-                displayMessageInChat(message, 'sent');
+            console.log('👨‍💼 Respuesta de admin confirmada:', data);
+            
+            // Si es la conversación activa, mostrar el mensaje
+            if (currentConversationId === data.conversation_id) {
+                displayMessage(data.message, 'sent');
             }
         }
 
-        // Actualizar o crear item en la lista de chats
-        function updateOrCreateChatItem(clientId, clientName, lastMessage) {
-            let chatItem = document.querySelector(`[data-chat="${clientId}"]`);
-
-            if (!chatItem) {
-                // Crear nuevo chat item
-                const chatList = document.querySelector('.chat-list');
-                chatItem = document.createElement('div');
-                chatItem.className = 'chat-item';
-                chatItem.dataset.chat = clientId;
-
-                chatItem.innerHTML = `
-                    <h4>${clientName} <span class="chat-status status-ai">IA</span></h4>
-                    <p>${lastMessage.substring(0, 50)}${lastMessage.length > 50 ? '...' : ''}</p>
+        // Manejar historial de conversación
+        function handleConversationHistory(data) {
+            console.log('📜 Historial recibido:', data);
+            
+            const messagesContainer = document.getElementById('messagesContainer');
+            messagesContainer.innerHTML = '';
+            
+            if (data.messages.length === 0) {
+                messagesContainer.innerHTML = `
+                    <div class="no-chat-selected">
+                        <div class="icon">💬</div>
+                        <h3>Sin mensajes</h3>
+                        <p>Esta conversación no tiene mensajes aún</p>
+                    </div>
                 `;
-
-                chatItem.addEventListener('click', function() {
-                    switchChat(clientId);
-                });
-
-                // Insertar al principio de la lista
-                chatList.insertBefore(chatItem, chatList.firstChild);
-
-                // Crear contenedor de mensajes para este chat
-                const messagesContainer = document.getElementById('messages');
-                const newChatDiv = document.createElement('div');
-                newChatDiv.className = 'chat-messages';
-                newChatDiv.id = `chat-${clientId}`;
-                newChatDiv.style.display = 'none';
-                messagesContainer.appendChild(newChatDiv);
-
-            } else {
-                // Actualizar mensaje existente
-                const messagePreview = chatItem.querySelector('p');
-                if (messagePreview) {
-                    messagePreview.textContent = lastMessage.substring(0, 50) +
-                        (lastMessage.length > 50 ? '...' : '');
-                }
-
-                // Mover al top
-                const chatList = chatItem.parentNode;
-                chatList.insertBefore(chatItem, chatList.firstChild);
+                return;
             }
-
-            // Agregar indicador de mensaje nuevo si no es el chat activo
-            if (currentChat != clientId) {
-                chatItem.classList.add('has-new-message');
-            }
+            
+            // Mostrar mensajes
+            data.messages.forEach(message => {
+                const type = message.message_type === 'cliente' ? 'received' : 'sent';
+                displayMessage(message, type);
+            });
         }
 
-        // Mostrar mensaje en el chat actual
-        function displayMessageInChat(message, type) {
-            const messagesContainer = document.getElementById(`chat-${currentChat}`);
-            if (!messagesContainer) return;
+        // Seleccionar conversación
+        function selectConversation(conversationId) {
+            console.log(`🎯 Seleccionando conversación ${conversationId}`);
+            
+            // Actualizar UI
+            document.querySelectorAll('.chat-item').forEach(item => {
+                item.classList.remove('active');
+                item.classList.remove('has-new-message');
+            });
+            
+            const selectedItem = document.querySelector(`[data-conversation-id="${conversationId}"]`);
+            if (selectedItem) {
+                selectedItem.classList.add('active');
+            }
+            
+            // Actualizar variables
+            currentConversationId = conversationId;
+            const conv = conversationData[conversationId];
+            
+            if (conv) {
+                document.getElementById('currentChatTitle').textContent = conv.client_name;
+            }
+            
+            // Habilitar input
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+            
+            messageInput.disabled = false;
+            messageInput.placeholder = 'Escribe tu respuesta...';
+            sendButton.disabled = false;
+            
+            // Ocultar mensaje de no selección
+            document.getElementById('noChatSelected').style.display = 'none';
+            
+            // Solicitar historial
+            if (chatClient && isConnected) {
+                chatClient.send({
+                    type: "get_conversation_history",
+                    conversation_id: conversationId,
+                    limit: 50
+                });
+                
+                chatClient.send({
+                    type: "join_conversation",
+                    conversation_id: conversationId
+                });
+            }
+            
+            // Focus en input
+            messageInput.focus();
+        }
 
+        // Enviar mensaje
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message || !currentConversationId || !chatClient || !isConnected) {
+                return;
+            }
+            
+            console.log(`📤 Enviando mensaje: ${message}`);
+            
+            // Enviar a través del WebSocket
+            chatClient.send({
+                type: "admin_response",
+                conversation_id: currentConversationId,
+                message: message,
+                admin_name: 'Administrador',
+                timestamp: new Date().toISOString()
+            });
+            
+            // Limpiar input
+            input.value = '';
+        }
+
+        // Mostrar mensaje en el chat
+        function displayMessage(message, type) {
+            const messagesContainer = document.getElementById('messagesContainer');
+            
             const messageElement = document.createElement('div');
             messageElement.className = `message ${type}`;
-
+            
             const timeString = new Date(message.timestamp).toLocaleTimeString('es-ES', {
                 hour: '2-digit',
                 minute: '2-digit'
             });
-
-            const aiIndicator = message.message_type === 'ia' ?
+            
+            const aiIndicator = message.message_type === 'ia' ? 
                 '<span class="ai-indicator">IA</span>' : '';
-
+            
             messageElement.innerHTML = `
                 <div class="message-bubble">
                     ${message.content}
@@ -647,17 +676,75 @@
                     </div>
                 </div>
             `;
-
+            
             messagesContainer.appendChild(messageElement);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
-        // Actualizar indicador de conexión
-        function updateConnectionIndicator(isConnected) {
-            const indicator = document.getElementById('connectionStatus');
-            if (indicator) {
-                indicator.className = isConnected ? 'connection-status' : 'connection-status disconnected';
+        // Actualizar o crear item en la lista de chats
+        function updateOrCreateChatItem(clientId, clientName, lastMessage) {
+            let chatItem = document.querySelector(`[data-client-id="${clientId}"]`);
+            
+            if (!chatItem) {
+                // Si no existe, solicitar actualización de conversaciones
+                requestActiveConversations();
+                return;
             }
+            
+            // Actualizar mensaje preview
+            const messagePreview = chatItem.querySelector('p');
+            if (messagePreview) {
+                messagePreview.textContent = lastMessage.substring(0, 50) + 
+                    (lastMessage.length > 50 ? '...' : '');
+            }
+            
+            // Mover al top de la lista
+            const chatList = chatItem.parentNode;
+            chatList.insertBefore(chatItem, chatList.firstChild);
+            
+            // Agregar indicador de mensaje nuevo si no es la conversación activa
+            if (currentConversationId != chatItem.dataset.conversationId) {
+                chatItem.classList.add('has-new-message');
+            }
+        }
+
+        // Actualizar indicador de conexión
+        function updateConnectionIndicator(connected) {
+            const indicator = document.getElementById('connectionIndicator');
+            if (connected) {
+                indicator.classList.remove('disconnected');
+            } else {
+                indicator.classList.add('disconnected');
+            }
+        }
+
+        // Mostrar status temporal
+        function showStatus(message, type = 'info') {
+            const statusIndicator = document.getElementById('statusIndicator');
+            statusIndicator.textContent = message;
+            statusIndicator.className = `status-indicator show ${type}`;
+            
+            setTimeout(() => {
+                statusIndicator.classList.remove('show');
+            }, 3000);
+        }
+
+        // Mostrar error
+        function showError(message) {
+            console.error('❌', message);
+            
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = message;
+            
+            const messagesContainer = document.getElementById('messagesContainer');
+            messagesContainer.appendChild(errorDiv);
+            
+            setTimeout(() => {
+                if (errorDiv.parentNode) {
+                    errorDiv.parentNode.removeChild(errorDiv);
+                }
+            }, 5000);
         }
 
         // Reproducir sonido de notificación
@@ -677,230 +764,27 @@
                     body: message.substring(0, 100),
                     icon: '/favicon.ico'
                 });
+            } else if ('Notification' in window && Notification.permission === 'default') {
+                // Solicitar permisos si no se han solicitado
+                Notification.requestPermission();
             }
         }
 
-        // Cambiar entre chats
-        function switchChat(chatId) {
-            // Actualizar sidebar
-            document.querySelectorAll('.chat-item').forEach(item => {
-                item.classList.remove('active');
-                item.classList.remove('has-new-message'); // Quitar indicador de mensaje nuevo
-            });
-
-            const selectedChat = document.querySelector(`[data-chat="${chatId}"]`);
-            if (selectedChat) {
-                selectedChat.classList.add('active');
-            }
-
-            // Actualizar mensajes
-            document.querySelectorAll('.chat-messages').forEach(chat => {
-                chat.style.display = 'none';
-            });
-
-            const targetChat = document.getElementById(`chat-${chatId}`);
-            if (targetChat) {
-                targetChat.style.display = 'block';
-            }
-
-            // Actualizar header
-            const chatNames = {
-                '1': 'Juan Pérez',
-                '2': 'María González',
-                '3': 'Carlos Rodríguez',
-                '4': 'Ana Martínez',
-                '5': 'Diego López',
-                '6': 'Sofia Herrera',
-                '7': 'Miguel Torres'
-            };
-
-            const clientName = chatNames[chatId] || `Cliente ${chatId}`;
-            document.getElementById('current-chat').textContent = clientName;
-
-            currentChat = chatId;
-
-            // Si tenemos WebSocket, unirse a esta conversación
-            if (chatClient && conversationMap[chatId]) {
-                chatClient.joinConversation(conversationMap[chatId]);
-            }
+        // Actualizar conversaciones manualmente
+        function refreshConversations() {
+            console.log('🔄 Actualizando conversaciones...');
+            showStatus('Actualizando conversaciones...', 'info');
+            requestActiveConversations();
         }
 
-        // Enviar mensaje usando WebSocket
-        function sendMessage() {
-            const input = document.getElementById('messageInput');
-            const message = input.value.trim();
-
-            if (!message || !chatClient) return;
-
-            // Obtener conversation_id para el chat actual
-            const conversationId = conversationMap[currentChat] || currentChat;
-
-            // Enviar a través del WebSocket
-            if (chatClient.send) {
-                chatClient.send({
-                    type: "admin_response",
-                    conversation_id: conversationId,
-                    message: message,
-                    admin_name: 'Administrador',
-                    timestamp: new Date().toISOString()
-                });
-
-                // Mostrar mensaje localmente
-                displayMessageInChat({
-                    content: message,
-                    sender: 'Administrador',
-                    timestamp: new Date().toISOString(),
-                    message_type: 'humano'
-                }, 'sent');
-
-                // Limpiar input
-                input.value = '';
-            } else {
-                // Fallback manual
-                const now = new Date();
-                const timeString = now.toLocaleTimeString('es-ES', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-
-                // Mostrar mensaje localmente
-                displayLocalMessage(message, 'sent', 'Administrador', timeString);
-
-                // Limpiar input
-                input.value = '';
-
-                // Simular respuesta (esto se reemplazará por IA real)
-                setTimeout(() => {
-                    simulateResponse(message);
-                }, 1000);
-            }
-        }
-
-        // Función para mostrar mensajes localmente
-        function displayLocalMessage(content, type, sender, time) {
-            const messagesContainer = document.getElementById(`chat-${currentChat}`);
-            const messageElement = document.createElement('div');
-            messageElement.className = `message ${type}`;
-
-            messageElement.innerHTML = `
-                <div class="message-bubble">
-                    ${content}
-                    <div class="message-info">${sender} • ${time}</div>
-                </div>
-            `;
-
-            messagesContainer.appendChild(messageElement);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-
-        // Función para mostrar errores
-        function showErrorMessage(message) {
-            const errorDiv = document.createElement('div');
-            errorDiv.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: #f44336;
-                color: white;
-                padding: 15px;
-                border-radius: 4px;
-                z-index: 9999;
-            `;
-            errorDiv.textContent = message;
-            document.body.appendChild(errorDiv);
-
-            setTimeout(() => {
-                document.body.removeChild(errorDiv);
-            }, 5000);
-        }
-
-        // Simular respuesta (esto se conectaría con tu backend)
-        function simulateResponse(originalMessage) {
-            const messagesContainer = document.getElementById(`chat-${currentChat}`);
-            const messageElement = document.createElement('div');
-            messageElement.className = 'message received';
-
-            const now = new Date();
-            const timeString = now.toLocaleTimeString('es-ES', {
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-
-            // Respuesta simulada basada en el chat actual
-            let response = "Entendido. ¿Hay algo más en lo que pueda ayudarte?";
-            let sender = "Cliente";
-
-            if (currentChat == 1) {
-                sender = "Juan Pérez";
-            } else if (currentChat == 2) {
-                sender = "María González";
-            } else if (currentChat == 3) {
-                sender = "Carlos Rodríguez";
-            }
-
-            messageElement.innerHTML = `
-                <div class="message-bubble">
-                    ${response}
-                    <div class="message-info">${sender} • ${timeString}</div>
-                </div>
-            `;
-
-            messagesContainer.appendChild(messageElement);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-
-        // Toggle panel de configuración
-        function toggleConfig() {
-            configVisible = !configVisible;
-            const panel = document.getElementById('configPanel');
-
-            if (configVisible) {
-                panel.classList.add('active');
-            } else {
-                panel.classList.remove('active');
-            }
-        }
-
-        // Actualizar valor de temperatura
-        function updateTemp(value) {
-            document.getElementById('tempValue').textContent = value;
-        }
-
-        // Guardar configuración
-        function saveConfig() {
-            const config = {
-                systemPrompt: document.getElementById('systemPrompt').value,
-                temperature: document.getElementById('temperature').value,
-                minTokens: document.getElementById('minTokens').value,
-                maxTokens: document.getElementById('maxTokens').value,
-                model: document.getElementById('model').value,
-                autoTransfer: document.getElementById('autoTransfer').value
-            };
-
-            // Aquí enviarías la configuración a tu backend
-            console.log('Configuración guardada:', config);
-
-            // Mostrar confirmación
-            alert('Configuración guardada exitosamente');
-
-            // Cerrar panel
-            toggleConfig();
-        }
-
-        // Función para conectar con tu backend (ejemplo)
-        function connectToBackend() {
-            // Ejemplo de conexión WebSocket
-            // const ws = new WebSocket('ws://localhost:8080/chat');
-
-            // ws.onmessage = function(event) {
-            //     const data = JSON.parse(event.data);
-            //     displayMessage(data);
-            // };
-
-            // ws.onopen = function() {
-            //     console.log('Conectado al backend');
-            // };
-        }
+        // Funciones de utilidad para debugging
+        window.ChatAdmin = {
+            getCurrentConversation: () => currentConversationId,
+            getConversationData: () => conversationData,
+            isConnected: () => isConnected,
+            refreshConversations,
+            selectConversation
+        };
     </script>
 </body>
 </html>
