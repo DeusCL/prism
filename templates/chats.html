@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Chat Biplan</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f2f5;
+            height: 100vh;
+            display: flex;
+        }
+
+        /* Sidebar con lista de chats */
+        .sidebar {
+            width: 300px;
+            background: white;
+            border-right: 1px solid #e5e7eb;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #e5e7eb;
+            background: #075e54;
+            color: white;
+        }
+
+        .sidebar-header h2 {
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .chat-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .chat-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #f1f1f1;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .chat-item:hover {
+            background: #f5f5f5;
+        }
+
+        .chat-item.active {
+            background: #e3f2fd;
+        }
+
+        .chat-item h4 {
+            font-size: 14px;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .chat-item p {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .chat-status {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+            margin-left: 8px;
+        }
+
+        .status-ai {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .status-human {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+
+        /* Panel principal */
+        .main-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            padding: 15px 20px;
+            background: #075e54;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header h3 {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .config-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .config-btn:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        /* Chat container */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+
+        .messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .message.sent {
+            justify-content: flex-end;
+        }
+
+        .message.received {
+            justify-content: flex-start;
+        }
+
+        .message-bubble {
+            max-width: 70%;
+            padding: 10px 15px;
+            border-radius: 18px;
+            position: relative;
+        }
+
+        .message.sent .message-bubble {
+            background: #075e54;
+            color: white;
+        }
+
+        .message.received .message-bubble {
+            background: white;
+            border: 1px solid #e5e7eb;
+        }
+
+        .message-info {
+            font-size: 11px;
+            margin-top: 5px;
+            opacity: 0.7;
+        }
+
+        .message.sent .message-info {
+            text-align: right;
+        }
+
+        .chat-item.has-new-message {
+            background: #e3f2fd;
+            border-left: 4px solid #075e54;
+        }
+
+        .chat-item.has-new-message::after {
+            content: '●';
+            color: #075e54;
+            font-size: 12px;
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .chat-item {
+            position: relative;
+        }
+
+        .ai-indicator {
+            background: #25d366;
+            color: white;
+            font-size: 9px;
+            padding: 1px 4px;
+            border-radius: 3px;
+            margin-left: 5px;
+        }
+
+        /* Input area */
+        .input-area {
+            padding: 15px 20px;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            gap: 10px;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            outline: none;
+            font-size: 14px;
+        }
+
+        .send-btn {
+            background: #075e54;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .send-btn:hover {
+            background: #128c7e;
+        }
+
+        /* Panel de configuración */
+        .config-panel {
+            width: 350px;
+            background: white;
+            border-left: 1px solid #e5e7eb;
+            padding: 20px;
+            display: none;
+            overflow-y: auto;
+        }
+
+        .config-panel.active {
+            display: block;
+        }
+
+        .config-section {
+            margin-bottom: 25px;
+        }
+
+        .config-section h4 {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .config-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+
+        .config-textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            resize: vertical;
+            height: 80px;
+        }
+
+        .config-range {
+            width: 100%;
+            margin: 5px 0;
+        }
+
+        .range-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .save-config {
+            background: #075e54;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .save-config:hover {
+            background: #128c7e;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar con lista de chats -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>Biplan Chat</h2>
+        </div>
+        <div class="chat-list">
+            <div class="chat-item active" data-chat="1">
+                <h4>Juan Pérez <span class="chat-status status-ai">IA</span></h4>
+                <p>Consulta sobre declaración de renta</p>
+            </div>
+            <div class="chat-item" data-chat="2">
+                <h4>María González <span class="chat-status status-human">Humano</span></h4>
+                <p>Asesoría legal empresa</p>
+            </div>
+            <div class="chat-item" data-chat="3">
+                <h4>Carlos Rodríguez <span class="chat-status status-ai">IA</span></h4>
+                <p>Información sobre servicios</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel principal -->
+    <div class="main-panel">
+        <div class="chat-header">
+            <h3 id="current-chat">Juan Pérez</h3>
+            <button class="config-btn" onclick="toggleConfig()">⚙️ Configurar IA</button>
+        </div>
+
+        <div class="chat-container">
+            <div class="messages" id="messages">
+                <!-- Chat 1 - Juan Pérez -->
+                <div class="chat-messages" id="chat-1">
+                    <div class="message received">
+                        <div class="message-bubble">
+                            Hola, necesito información sobre la declaración de renta para este año
+                            <div class="message-info">
+                                Juan Pérez • 10:30 AM <span class="ai-indicator">IA</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="message sent">
+                        <div class="message-bubble">
+                            ¡Hola Juan! Te ayudo con la declaración de renta. Para personas naturales, el plazo vence en abril. ¿Eres empleado o tienes ingresos independientes?
+                            <div class="message-info">IA Biplan • 10:31 AM</div>
+                        </div>
+                    </div>
+                    <div class="message received">
+                        <div class="message-bubble">
+                            Soy empleado pero también tengo algunos ingresos como freelancer
+                            <div class="message-info">Juan Pérez • 10:32 AM</div>
+                        </div>
+                    </div>
+                    <div class="message sent">
+                        <div class="message-bubble">
+                            Perfecto. Al tener ingresos mixtos, necesitarás documentación específica. Te voy a transferir con nuestro especialista tributario para que te asesore correctamente.
+                            <div class="message-info">IA Biplan • 10:33 AM</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat 2 - María González -->
+                <div class="chat-messages" id="chat-2" style="display: none;">
+                    <div class="message received">
+                        <div class="message-bubble">
+                            Buenos días, necesito asesoría para constituir una empresa
+                            <div class="message-info">María González • 09:15 AM</div>
+                        </div>
+                    </div>
+                    <div class="message sent">
+                        <div class="message-bubble">
+                            Buenos días María. Te ayudo con el proceso de constitución. ¿Qué tipo de empresa quieres constituir? SAS, Ltda, etc.
+                            <div class="message-info">Consultor Legal • 09:18 AM</div>
+                        </div>
+                    </div>
+                    <div class="message received">
+                        <div class="message-bubble">
+                            Una SAS para servicios de consultoría
+                            <div class="message-info">María González • 09:20 AM</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat 3 - Carlos Rodríguez -->
+                <div class="chat-messages" id="chat-3" style="display: none;">
+                    <div class="message received">
+                        <div class="message-bubble">
+                            Hola, ¿qué servicios ofrecen?
+                            <div class="message-info">Carlos Rodríguez • 11:45 AM <span class="ai-indicator">IA</span></div>
+                        </div>
+                    </div>
+                    <div class="message sent">
+                        <div class="message-bubble">
+                            ¡Hola Carlos! En Biplan ofrecemos: Consultoría Contable, Asesoría Legal, Consultoría Financiera, Asesoría Tributaria y Auditorías. ¿En cuál área te interesa recibir información?
+                            <div class="message-info">IA Biplan • 11:46 AM</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-area">
+                <input type="text" class="message-input" placeholder="Escribe un mensaje..." id="messageInput">
+                <button class="send-btn" onclick="sendMessage()">Enviar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel de configuración -->
+    <div class="config-panel" id="configPanel">
+        <h3 style="margin-bottom: 20px; color: #075e54;">Configuración de IA</h3>
+
+        <div class="config-section">
+            <h4>System Prompt</h4>
+            <textarea class="config-textarea" id="systemPrompt" placeholder="Eres un asistente de Biplan, empresa de consultoría contable, legal, financiera y tributaria...">Eres un asistente de Biplan, empresa de consultoría contable, legal, financiera y tributaria. Responde de manera profesional y amigable. Si la consulta es muy específica o técnica, deriva al cliente al área correspondiente.</textarea>
+        </div>
+
+        <div class="config-section">
+            <h4>Temperatura</h4>
+            <div class="range-label">
+                <span>Conservadora</span>
+                <span id="tempValue">0.7</span>
+                <span>Creativa</span>
+            </div>
+            <input type="range" class="config-range" id="temperature" min="0" max="1" step="0.1" value="0.7" oninput="updateTemp(this.value)">
+        </div>
+
+        <div class="config-section">
+            <h4>Tokens Mínimos</h4>
+            <input type="number" class="config-input" id="minTokens" value="50" min="10" max="500">
+        </div>
+
+        <div class="config-section">
+            <h4>Tokens Máximos</h4>
+            <input type="number" class="config-input" id="maxTokens" value="300" min="100" max="2000">
+        </div>
+
+        <div class="config-section">
+            <h4>Modelo</h4>
+            <select class="config-input" id="model">
+                <option value="gpt-4">GPT-4</option>
+                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                <option value="claude-3">Claude 3</option>
+            </select>
+        </div>
+
+        <div class="config-section">
+            <h4>Auto-derivación</h4>
+            <select class="config-input" id="autoTransfer">
+                <option value="enabled">Activada</option>
+                <option value="disabled">Desactivada</option>
+            </select>
+        </div>
+
+        <button class="save-config" onclick="saveConfig()">Guardar Configuración</button>
+    </div>
+
+    <!-- Incluir el cliente WebSocket -->
+    <script src="/static/js/chat-websocket.js"></script>
+
+    <script>
+        // Variables globales
+        let currentChat = 1;
+        let configVisible = false;
+        let chatClient = null;
+        let conversationMap = {}; // Mapea client_id a conversation_id
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar cliente WebSocket
+            if (window.PrismChat && window.PrismChat.isWebSocketSupported()) {
+                chatClient = window.PrismChat.createAdminClient();
+
+                // Configurar callbacks específicos del admin
+                chatClient.onMessage = handleWebSocketMessage;
+                chatClient.onConnect = () => {
+                    console.log('✅ Panel admin conectado al WebSocket');
+                    updateConnectionIndicator(true);
+                };
+                chatClient.onDisconnect = () => {
+                    console.log('❌ Panel admin desconectado del WebSocket');
+                    updateConnectionIndicator(false);
+                };
+
+                console.log('✅ Cliente WebSocket iniciado para admin');
+            } else {
+                console.error('❌ WebSocket no soportado');
+                showErrorMessage('Tu navegador no soporta WebSocket');
+            }
+
+            // Event listener para el input de mensaje
+            document.getElementById('messageInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+
+            // Event listeners para los chats
+            document.querySelectorAll('.chat-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    switchChat(this.dataset.chat);
+                });
+            });
+        });
+
+        // Manejar mensajes del WebSocket
+        function handleWebSocketMessage(data) {
+            console.log('📨 Admin recibió:', data);
+
+            switch(data.type) {
+                case 'new_message':
+                    handleNewClientMessage(data);
+                    break;
+                case 'admin_response':
+                    handleAdminResponse(data);
+                    break;
+                default:
+                    console.log('Tipo de mensaje no manejado:', data.type);
+            }
+        }
+
+        // Manejar nuevo mensaje de cliente
+        function handleNewClientMessage(data) {
+            const clientId = data.client_id;
+            const clientName = data.client_name;
+            const message = data.message;
+
+            // Actualizar o crear chat en la lista
+            updateOrCreateChatItem(clientId, clientName, message.content);
+
+            // Si es el chat activo, mostrar el mensaje
+            if (currentChat == clientId) {
+                displayMessageInChat(message, 'received');
+            }
+
+            // Reproducir sonido de notificación
+            playNotificationSound();
+
+            // Mostrar notificación desktop
+            showDesktopNotification(clientName, message.content);
+
+            // Mapear conversación
+            if (data.conversation_id) {
+                conversationMap[clientId] = data.conversation_id;
+            }
+        }
+
+        // Manejar respuesta del admin
+        function handleAdminResponse(data) {
+            const conversationId = data.conversation_id;
+            const message = data.message;
+
+            // Encontrar el cliente por conversation_id
+            const clientId = Object.keys(conversationMap).find(
+                key => conversationMap[key] == conversationId
+            );
+
+            if (clientId && currentChat == clientId) {
+                displayMessageInChat(message, 'sent');
+            }
+        }
+
+        // Actualizar o crear item en la lista de chats
+        function updateOrCreateChatItem(clientId, clientName, lastMessage) {
+            let chatItem = document.querySelector(`[data-chat="${clientId}"]`);
+
+            if (!chatItem) {
+                // Crear nuevo chat item
+                const chatList = document.querySelector('.chat-list');
+                chatItem = document.createElement('div');
+                chatItem.className = 'chat-item';
+                chatItem.dataset.chat = clientId;
+
+                chatItem.innerHTML = `
+                    <h4>${clientName} <span class="chat-status status-ai">IA</span></h4>
+                    <p>${lastMessage.substring(0, 50)}${lastMessage.length > 50 ? '...' : ''}</p>
+                `;
+
+                chatItem.addEventListener('click', function() {
+                    switchChat(clientId);
+                });
+
+                // Insertar al principio de la lista
+                chatList.insertBefore(chatItem, chatList.firstChild);
+
+                // Crear contenedor de mensajes para este chat
+                const messagesContainer = document.getElementById('messages');
+                const newChatDiv = document.createElement('div');
+                newChatDiv.className = 'chat-messages';
+                newChatDiv.id = `chat-${clientId}`;
+                newChatDiv.style.display = 'none';
+                messagesContainer.appendChild(newChatDiv);
+
+            } else {
+                // Actualizar mensaje existente
+                const messagePreview = chatItem.querySelector('p');
+                if (messagePreview) {
+                    messagePreview.textContent = lastMessage.substring(0, 50) +
+                        (lastMessage.length > 50 ? '...' : '');
+                }
+
+                // Mover al top
+                const chatList = chatItem.parentNode;
+                chatList.insertBefore(chatItem, chatList.firstChild);
+            }
+
+            // Agregar indicador de mensaje nuevo si no es el chat activo
+            if (currentChat != clientId) {
+                chatItem.classList.add('has-new-message');
+            }
+        }
+
+        // Mostrar mensaje en el chat actual
+        function displayMessageInChat(message, type) {
+            const messagesContainer = document.getElementById(`chat-${currentChat}`);
+            if (!messagesContainer) return;
+
+            const messageElement = document.createElement('div');
+            messageElement.className = `message ${type}`;
+
+            const timeString = new Date(message.timestamp).toLocaleTimeString('es-ES', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            const aiIndicator = message.message_type === 'ia' ?
+                '<span class="ai-indicator">IA</span>' : '';
+
+            messageElement.innerHTML = `
+                <div class="message-bubble">
+                    ${message.content}
+                    <div class="message-info">
+                        ${message.sender} • ${timeString} ${aiIndicator}
+                    </div>
+                </div>
+            `;
+
+            messagesContainer.appendChild(messageElement);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Actualizar indicador de conexión
+        function updateConnectionIndicator(isConnected) {
+            const indicator = document.getElementById('connectionStatus');
+            if (indicator) {
+                indicator.className = isConnected ? 'connection-status' : 'connection-status disconnected';
+            }
+        }
+
+        // Reproducir sonido de notificación
+        function playNotificationSound() {
+            try {
+                const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAQABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+D0xW0gBjiR1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+D0xW0gBjiR1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+D0xW0gBjiR1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+D0xW0gBjiR1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+D0xW0gBjiR1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+D0xW0gBjiR1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn==');
+                audio.play().catch(() => {}); // Ignorar errores de autoplay
+            } catch (e) {
+                // Silencioso si no se puede reproducir
+            }
+        }
+
+        // Mostrar notificación desktop
+        function showDesktopNotification(clientName, message) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification(`Nuevo mensaje de ${clientName}`, {
+                    body: message.substring(0, 100),
+                    icon: '/favicon.ico'
+                });
+            }
+        }
+
+        // Cambiar entre chats
+        function switchChat(chatId) {
+            // Actualizar sidebar
+            document.querySelectorAll('.chat-item').forEach(item => {
+                item.classList.remove('active');
+                item.classList.remove('has-new-message'); // Quitar indicador de mensaje nuevo
+            });
+
+            const selectedChat = document.querySelector(`[data-chat="${chatId}"]`);
+            if (selectedChat) {
+                selectedChat.classList.add('active');
+            }
+
+            // Actualizar mensajes
+            document.querySelectorAll('.chat-messages').forEach(chat => {
+                chat.style.display = 'none';
+            });
+
+            const targetChat = document.getElementById(`chat-${chatId}`);
+            if (targetChat) {
+                targetChat.style.display = 'block';
+            }
+
+            // Actualizar header
+            const chatNames = {
+                '1': 'Juan Pérez',
+                '2': 'María González',
+                '3': 'Carlos Rodríguez',
+                '4': 'Ana Martínez',
+                '5': 'Diego López',
+                '6': 'Sofia Herrera',
+                '7': 'Miguel Torres'
+            };
+
+            const clientName = chatNames[chatId] || `Cliente ${chatId}`;
+            document.getElementById('current-chat').textContent = clientName;
+
+            currentChat = chatId;
+
+            // Si tenemos WebSocket, unirse a esta conversación
+            if (chatClient && conversationMap[chatId]) {
+                chatClient.joinConversation(conversationMap[chatId]);
+            }
+        }
+
+        // Enviar mensaje usando WebSocket
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+
+            if (!message || !chatClient) return;
+
+            // Obtener conversation_id para el chat actual
+            const conversationId = conversationMap[currentChat] || currentChat;
+
+            // Enviar a través del WebSocket
+            if (chatClient.send) {
+                chatClient.send({
+                    type: "admin_response",
+                    conversation_id: conversationId,
+                    message: message,
+                    admin_name: 'Administrador',
+                    timestamp: new Date().toISOString()
+                });
+
+                // Mostrar mensaje localmente
+                displayMessageInChat({
+                    content: message,
+                    sender: 'Administrador',
+                    timestamp: new Date().toISOString(),
+                    message_type: 'humano'
+                }, 'sent');
+
+                // Limpiar input
+                input.value = '';
+            } else {
+                // Fallback manual
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('es-ES', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                // Mostrar mensaje localmente
+                displayLocalMessage(message, 'sent', 'Administrador', timeString);
+
+                // Limpiar input
+                input.value = '';
+
+                // Simular respuesta (esto se reemplazará por IA real)
+                setTimeout(() => {
+                    simulateResponse(message);
+                }, 1000);
+            }
+        }
+
+        // Función para mostrar mensajes localmente
+        function displayLocalMessage(content, type, sender, time) {
+            const messagesContainer = document.getElementById(`chat-${currentChat}`);
+            const messageElement = document.createElement('div');
+            messageElement.className = `message ${type}`;
+
+            messageElement.innerHTML = `
+                <div class="message-bubble">
+                    ${content}
+                    <div class="message-info">${sender} • ${time}</div>
+                </div>
+            `;
+
+            messagesContainer.appendChild(messageElement);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Función para mostrar errores
+        function showErrorMessage(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #f44336;
+                color: white;
+                padding: 15px;
+                border-radius: 4px;
+                z-index: 9999;
+            `;
+            errorDiv.textContent = message;
+            document.body.appendChild(errorDiv);
+
+            setTimeout(() => {
+                document.body.removeChild(errorDiv);
+            }, 5000);
+        }
+
+        // Simular respuesta (esto se conectaría con tu backend)
+        function simulateResponse(originalMessage) {
+            const messagesContainer = document.getElementById(`chat-${currentChat}`);
+            const messageElement = document.createElement('div');
+            messageElement.className = 'message received';
+
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('es-ES', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            // Respuesta simulada basada en el chat actual
+            let response = "Entendido. ¿Hay algo más en lo que pueda ayudarte?";
+            let sender = "Cliente";
+
+            if (currentChat == 1) {
+                sender = "Juan Pérez";
+            } else if (currentChat == 2) {
+                sender = "María González";
+            } else if (currentChat == 3) {
+                sender = "Carlos Rodríguez";
+            }
+
+            messageElement.innerHTML = `
+                <div class="message-bubble">
+                    ${response}
+                    <div class="message-info">${sender} • ${timeString}</div>
+                </div>
+            `;
+
+            messagesContainer.appendChild(messageElement);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Toggle panel de configuración
+        function toggleConfig() {
+            configVisible = !configVisible;
+            const panel = document.getElementById('configPanel');
+
+            if (configVisible) {
+                panel.classList.add('active');
+            } else {
+                panel.classList.remove('active');
+            }
+        }
+
+        // Actualizar valor de temperatura
+        function updateTemp(value) {
+            document.getElementById('tempValue').textContent = value;
+        }
+
+        // Guardar configuración
+        function saveConfig() {
+            const config = {
+                systemPrompt: document.getElementById('systemPrompt').value,
+                temperature: document.getElementById('temperature').value,
+                minTokens: document.getElementById('minTokens').value,
+                maxTokens: document.getElementById('maxTokens').value,
+                model: document.getElementById('model').value,
+                autoTransfer: document.getElementById('autoTransfer').value
+            };
+
+            // Aquí enviarías la configuración a tu backend
+            console.log('Configuración guardada:', config);
+
+            // Mostrar confirmación
+            alert('Configuración guardada exitosamente');
+
+            // Cerrar panel
+            toggleConfig();
+        }
+
+        // Función para conectar con tu backend (ejemplo)
+        function connectToBackend() {
+            // Ejemplo de conexión WebSocket
+            // const ws = new WebSocket('ws://localhost:8080/chat');
+
+            // ws.onmessage = function(event) {
+            //     const data = JSON.parse(event.data);
+            //     displayMessage(data);
+            // };
+
+            // ws.onopen = function() {
+            //     console.log('Conectado al backend');
+            // };
+        }
+    </script>
+</body>
+</html>

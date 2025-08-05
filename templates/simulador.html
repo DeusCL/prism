@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cliente Móvil - Biplan</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #128c7e;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .phone-container {
+            width: 375px;
+            height: 667px;
+            background: white;
+            border-radius: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .phone-header {
+            background: #075e54;
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        /* Selector de cliente */
+        .client-selector {
+            background: #f0f2f5;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .client-selector h3 {
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .client-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .client-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .client-card:hover {
+            border-color: #075e54;
+            transform: translateY(-2px);
+        }
+
+        .client-card.active {
+            border-color: #075e54;
+            background: #e8f5e8;
+        }
+
+        .client-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #075e54;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .client-name {
+            font-size: 12px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 2px;
+        }
+
+        .client-id {
+            font-size: 10px;
+            color: #666;
+        }
+
+        /* Chat area */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #e5ddd5;
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="40" height="40" fill="%23e5ddd5"/><circle cx="20" cy="20" r="1" fill="%23ffffff" opacity="0.1"/></svg>');
+        }
+
+        .messages-container {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+        }
+
+        .message.sent {
+            justify-content: flex-end;
+        }
+
+        .message.received {
+            justify-content: flex-start;
+        }
+
+        .message-bubble {
+            max-width: 80%;
+            padding: 8px 12px;
+            border-radius: 8px;
+            position: relative;
+            word-wrap: break-word;
+        }
+
+        .message.sent .message-bubble {
+            background: #dcf8c6;
+            border-bottom-right-radius: 2px;
+        }
+
+        .message.received .message-bubble {
+            background: white;
+            border-bottom-left-radius: 2px;
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: #666;
+            margin-top: 2px;
+            text-align: right;
+        }
+
+        .message.received .message-time {
+            text-align: left;
+        }
+
+        .ai-badge {
+            background: #25d366;
+            color: white;
+            font-size: 9px;
+            padding: 1px 4px;
+            border-radius: 3px;
+            margin-left: 5px;
+        }
+
+        /* Input area */
+        .input-area {
+            background: #f0f2f5;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .message-input {
+            flex: 1;
+            background: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 20px;
+            outline: none;
+            font-size: 14px;
+        }
+
+        .message-input:disabled {
+            background: #f5f5f5;
+            color: #999;
+        }
+
+        .send-button {
+            width: 40px;
+            height: 40px;
+            background: #075e54;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+        }
+
+        .send-button:hover:not(:disabled) {
+            background: #128c7e;
+        }
+
+        .send-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* Estado sin cliente seleccionado */
+        .no-client-selected {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #666;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .no-client-selected .icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        /* Indicador de conexión */
+        .connection-status {
+            position: absolute;
+            top: 45px;
+            right: 20px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #25d366;
+            border: 2px solid white;
+        }
+
+        .connection-status.disconnected {
+            background: #f44336;
+        }
+
+        /* Responsive para desktop */
+        @media (min-width: 768px) {
+            body {
+                background: linear-gradient(135deg, #128c7e 0%, #075e54 100%);
+            }
+
+            .phone-container {
+                box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            }
+        }
+
+        /* Animación de escritura */
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            justify-content: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .typing-bubble {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border-bottom-left-radius: 2px;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 3px;
+        }
+
+        .typing-dots span {
+            width: 6px;
+            height: 6px;
+            background: #666;
+            border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.4;
+            }
+            30% {
+                transform: translateY(-10px);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="phone-container">
+        <div class="phone-header">
+            <div>Chat Biplan</div>
+            <div class="connection-status" id="connectionStatus"></div>
+        </div>
+
+        <div class="client-selector">
+            <h3>Selecciona un cliente para simular:</h3>
+            <div class="client-grid">
+                <div class="client-card" data-client-id="4" data-client-name="Ana Martínez" data-client-type="nuevo">
+                    <div class="client-avatar">AM</div>
+                    <div class="client-name">Ana Martínez</div>
+                    <div class="client-id">ID: 4</div>
+                </div>
+                <div class="client-card" data-client-id="5" data-client-name="Diego López" data-client-type="nuevo">
+                    <div class="client-avatar">DL</div>
+                    <div class="client-name">Diego López</div>
+                    <div class="client-id">ID: 5</div>
+                </div>
+                <div class="client-card" data-client-id="6" data-client-name="Sofia Herrera" data-client-type="nuevo">
+                    <div class="client-avatar">SH</div>
+                    <div class="client-name">Sofia Herrera</div>
+                    <div class="client-id">ID: 6</div>
+                </div>
+                <div class="client-card" data-client-id="7" data-client-name="Miguel Torres" data-client-type="nuevo">
+                    <div class="client-avatar">MT</div>
+                    <div class="client-name">Miguel Torres</div>
+                    <div class="client-id">ID: 7</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-area">
+            <div class="messages-container" id="messagesContainer">
+                <div class="no-client-selected" id="noClientSelected">
+                    <div class="icon">💬</div>
+                    <h3>Selecciona un cliente</h3>
+                    <p>Elige un cliente de la lista para comenzar a simular la conversación</p>
+                </div>
+            </div>
+
+            <div class="typing-indicator" id="typingIndicator">
+                <div class="typing-bubble">
+                    <div class="typing-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-area">
+                <input
+                    type="text"
+                    class="message-input"
+                    id="messageInput"
+                    placeholder="Selecciona un cliente primero..."
+                    disabled
+                >
+                <button class="send-button" id="sendButton" disabled>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Incluir el cliente WebSocket -->
+    <script src="/static/js/chat-websocket.js"></script>
+
+    <script>
+        // Variables globales
+        let currentClient = null;
+        let messageHistory = {};
+        let isConnected = true;
+        let chatClient = null;
+
+        // Clientes predefinidos
+        const clients = {
+            4: { name: "Ana Martínez", avatar: "AM", type: "nuevo" },
+            5: { name: "Diego López", avatar: "DL", type: "nuevo" },
+            6: { name: "Sofia Herrera", avatar: "SH", type: "nuevo" },
+            7: { name: "Miguel Torres", avatar: "MT", type: "nuevo" }
+        };
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        function initializeApp() {
+            // Event listeners para selección de cliente
+            document.querySelectorAll('.client-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    selectClient(this.dataset.clientId);
+                });
+            });
+
+            // Event listener para envío de mensajes
+            document.getElementById('messageInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !this.disabled) {
+                    sendMessage();
+                }
+            });
+
+            document.getElementById('sendButton').addEventListener('click', function() {
+                if (!this.disabled) {
+                    sendMessage();
+                }
+            });
+
+            // Simular estado de conexión
+            updateConnectionStatus();
+        }
+
+        function selectClient(clientId) {
+            // Actualizar UI
+            document.querySelectorAll('.client-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            document.querySelector(`[data-client-id="${clientId}"]`).classList.add('active');
+
+            // Establecer cliente actual
+            currentClient = clientId;
+            const client = clients[clientId];
+
+            // Inicializar WebSocket para este cliente
+            if (window.PrismChat && window.PrismChat.isWebSocketSupported()) {
+                if (chatClient) {
+                    chatClient.disconnect();
+                }
+                chatClient = window.PrismChat.createMobileClient(clientId, client.name);
+                console.log(`✅ WebSocket iniciado para ${client.name}`);
+            } else {
+                console.error('❌ WebSocket no soportado');
+            }
+
+            // Habilitar input
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+
+            messageInput.disabled = false;
+            messageInput.placeholder = `Escribiendo como ${client.name}...`;
+            sendButton.disabled = false;
+
+            // Ocultar mensaje de no selección
+            document.getElementById('noClientSelected').style.display = 'none';
+
+            // Cargar historial de mensajes
+            loadMessageHistory(clientId);
+
+            // Focus en input
+            messageInput.focus();
+
+            console.log(`Cliente seleccionado: ${client.name} (ID: ${clientId})`);
+        }
+
+        function loadMessageHistory(clientId) {
+            const container = document.getElementById('messagesContainer');
+
+            // Limpiar contenedor
+            container.innerHTML = '';
+
+            // Cargar mensajes existentes si los hay
+            if (messageHistory[clientId]) {
+                messageHistory[clientId].forEach(message => {
+                    displayMessage(message.text, message.type, message.time, message.isAI);
+                });
+            }
+
+            // Scroll al final
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const messageText = input.value.trim();
+
+            if (!messageText || !currentClient || !chatClient) return;
+
+            // Enviar a través del WebSocket usando el método específico de la clase
+            if (chatClient && typeof chatClient.sendClientMessage === 'function') {
+                chatClient.sendClientMessage();
+            } else {
+                // Fallback manual si WebSocket no está disponible
+                const timestamp = new Date().toLocaleTimeString('es-ES', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                const message = {
+                    text: messageText,
+                    type: 'sent',
+                    time: timestamp,
+                    isAI: false
+                };
+
+                // Guardar en historial local
+                if (!messageHistory[currentClient]) {
+                    messageHistory[currentClient] = [];
+                }
+                messageHistory[currentClient].push(message);
+
+                // Mostrar mensaje localmente
+                displayMessage(messageText, 'sent', timestamp, false);
+
+                // Limpiar input
+                input.value = '';
+
+                // Enviar al sistema principal (simulado)
+                sendToMainSystem({
+                    clientId: currentClient,
+                    clientName: clients[currentClient].name,
+                    message: messageText,
+                    timestamp: timestamp,
+                    type: 'new_client_message'
+                });
+            }
+        }
+
+        function displayMessage(text, type, time, isAI = false) {
+            const container = document.getElementById('messagesContainer');
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+
+            const aiBadge = isAI ? '<span class="ai-badge">IA</span>' : '';
+
+            messageDiv.innerHTML = `
+                <div class="message-bubble">
+                    ${text}
+                    <div class="message-time">${time}${aiBadge}</div>
+                </div>
+            `;
+
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            indicator.style.display = 'flex';
+
+            // Ocultar después de 2 segundos
+            setTimeout(() => {
+                indicator.style.display = 'none';
+            }, 2000);
+        }
+
+        // Función para recibir respuestas de la IA (llamada desde el sistema principal)
+        function receiveAIResponse(response) {
+            if (response.clientId == currentClient) {
+                const timestamp = new Date().toLocaleTimeString('es-ES', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                const message = {
+                    text: response.message,
+                    type: 'received',
+                    time: timestamp,
+                    isAI: true
+                };
+
+                // Guardar en historial
+                if (!messageHistory[currentClient]) {
+                    messageHistory[currentClient] = [];
+                }
+                messageHistory[currentClient].push(message);
+
+                // Mostrar mensaje
+                displayMessage(response.message, 'received', timestamp, true);
+            }
+        }
+
+        // Función para enviar datos al sistema principal
+        function sendToMainSystem(data) {
+            // Aquí implementarías la conexión con tu backend/sistema principal
+            console.log('Enviando al sistema principal:', data);
+
+            // Ejemplo de implementación con WebSocket:
+            // if (websocket && websocket.readyState === WebSocket.OPEN) {
+            //     websocket.send(JSON.stringify(data));
+            // }
+
+            // Ejemplo de implementación con fetch:
+            // fetch('/api/new-message', {
+            //     method: 'POST',
+            //     headers: { 'Content-Type': 'application/json' },
+            //     body: JSON.stringify(data)
+            // });
+        }
+
+        function updateConnectionStatus() {
+            const status = document.getElementById('connectionStatus');
+
+            if (isConnected) {
+                status.classList.remove('disconnected');
+            } else {
+                status.classList.add('disconnected');
+            }
+        }
+
+        // Función para simular desconexión (para testing)
+        function toggleConnection() {
+            isConnected = !isConnected;
+            updateConnectionStatus();
+            console.log(`Estado de conexión: ${isConnected ? 'Conectado' : 'Desconectado'}`);
+        }
+
+        // Funciones de utilidad para la demostración
+        function addNewClient(name, id) {
+            if (!clients[id]) {
+                clients[id] = {
+                    name: name,
+                    avatar: name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2),
+                    type: 'nuevo'
+                };
+                console.log(`Cliente ${name} (ID: ${id}) agregado al sistema`);
+            }
+        }
+
+        // Exponer funciones globalmente para debugging/testing
+        window.BiplanClientSimulator = {
+            selectClient,
+            sendMessage,
+            receiveAIResponse,
+            toggleConnection,
+            addNewClient,
+            getCurrentClient: () => currentClient,
+            getMessageHistory: () => messageHistory
+        };
+    </script>
+</body>
+</html>
