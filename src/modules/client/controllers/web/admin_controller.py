@@ -13,3 +13,12 @@ class AdminController(Controller):
             "title": "Administración de Áreas - Prism",
             "page": "areas"
         })
+
+    @get("/iaconfig")
+    async def iaconfig(self) -> Template:
+        """Página de administración de áreas"""
+        return Template("admin/ia_config.html", context={
+            "title": "Administración de IA - Prism",
+            "page": "iaconfig"
+        })
+

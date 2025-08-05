@@ -1,4 +1,34 @@
-<!DOCTYPE html>
+/* Mensajes del sistema */
+        .message.system {
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .message.system .message-bubble {
+            background: #e3f2fd;
+            color: #1565c0;
+            border: 1px solid #bbdefb;
+            max-width: 90%;
+            text-align: center;
+            font-size: 13px;
+            border-radius: 15px;
+        }
+
+        .message.system .message-time {
+            text-align: center;
+            margin-top: 8px;
+            font-size: 10px;
+            opacity: 0.8;
+        }
+
+        .ai-badge {
+            background: #25d366;
+            color: white;
+            font-size: 9px;
+            padding: 1px 4px;
+            border-radius: 3px;
+            margin-left: 5px;
+        }<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -111,7 +141,6 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            overflow-y: auto;
             background: #e5ddd5;
             background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="40" height="40" fill="%23e5ddd5"/><circle cx="20" cy="20" r="1" fill="%23ffffff" opacity="0.1"/></svg>');
         }
@@ -538,6 +567,12 @@
                 case 'admin_response':
                     handleAdminResponse(data);
                     break;
+                case 'ai_response':
+                    handleAIResponse(data);
+                    break;
+                case 'transfer_notification':
+                    handleTransferNotification(data);
+                    break;
                 case 'connection_established':
                     console.log('🎉 Conexión establecida:', data.message);
                     break;
@@ -553,6 +588,26 @@
             if (data.message) {
                 displayMessage(data.message, 'received');
             }
+        }
+
+        // Manejar respuesta de la IA
+        function handleAIResponse(data) {
+            console.log('🤖 Respuesta de IA recibida:', data);
+
+            if (data.message) {
+                displayMessage(data.message, 'received');
+            }
+        }
+
+        // Manejar notificación de transferencia
+        function handleTransferNotification(data) {
+            console.log('🔄 Notificación de transferencia:', data);
+
+            if (data.message) {
+                displayMessage(data.message, 'system');
+            }
+
+            showStatus(`Transferido a ${data.transfer_area}`, 'info');
         }
 
         function sendMessage() {
@@ -607,12 +662,24 @@
                 minute: '2-digit'
             });
 
-            const aiBadge = message.message_type === 'ia' ? '<span class="ai-badge">IA</span>' : '';
+            let aiBadge = '';
+            let senderIcon = '';
+
+            if (message.message_type === 'ia') {
+                aiBadge = '<span class="ai-badge">IA</span>';
+                senderIcon = '🤖 ';
+            } else if (message.message_type === 'sistema') {
+                senderIcon = '🔄 ';
+                messageDiv.className = `message system`;
+            } else if (message.is_derivation) {
+                senderIcon = '📋 ';
+                messageDiv.className = `message system`;
+            }
 
             messageDiv.innerHTML = `
                 <div class="message-bubble">
                     ${message.content}
-                    <div class="message-time">${timeString}${aiBadge}</div>
+                    <div class="message-time">${senderIcon}${timeString}${aiBadge}</div>
                 </div>
             `;
 

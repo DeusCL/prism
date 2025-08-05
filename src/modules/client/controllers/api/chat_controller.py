@@ -8,10 +8,16 @@ from litestar.di import Provide
 from src.modules.client.dependencies import (
     provide_mensaje_repository, provide_mensaje_service,
     provide_conversacion_repository, provide_conversacion_service,
-    provide_cliente_repository, provide_cliente_service
+    provide_cliente_repository, provide_cliente_service,
+    provide_area_repository
+)
+from src.modules.client.dependencies.ia_dependency import (
+    provide_configuracion_repository, provide_configuracion_service, provide_ai_service
 )
 
-from src.modules.client.services import MensajeService, ConversacionService, ClienteService
+from src.modules.client.services import (
+    MensajeService, ConversacionService, ClienteService, ConfiguracionIAService, AIService
+)
 
 
 
@@ -30,7 +36,11 @@ class ChatWebSocketController(Controller):
         "conversacion_repository": Provide(provide_conversacion_repository),
         "conversacion_service": Provide(provide_conversacion_service),
         "cliente_repository": Provide(provide_cliente_repository),
-        "cliente_service": Provide(provide_cliente_service)
+        "cliente_service": Provide(provide_cliente_service),
+        "area_repository": Provide(provide_area_repository),
+        "configuracion_repository": Provide(provide_configuracion_repository),
+        "configuracion_service": Provide(provide_configuracion_service),
+        "ai_service": Provide(provide_ai_service)
     }
 
 
@@ -41,14 +51,12 @@ class ChatWebSocketController(Controller):
         connection_id: str,
         mensaje_service: MensajeService,
         conversacion_service: ConversacionService,
-        cliente_service: ClienteService
+        cliente_service: ClienteService,
+        configuracion_service: ConfiguracionIAService,
+        ai_service: AIService
     ) -> None:
         """
-        WebSocket endpoint para chat en tiempo real
-
-        connection_id puede ser:
-        - "admin" para el panel administrativo
-        - "client_{client_id}" para simuladores de cliente
+        WebSocket endpoint para chat en tiempo real con IA integrada
         """
         await socket.accept()
 
@@ -73,7 +81,9 @@ class ChatWebSocketController(Controller):
                     socket,
                     mensaje_service,
                     conversacion_service,
-                    cliente_service
+                    cliente_service,
+                    configuracion_service,
+                    ai_service
                 )
         except WebSocketException:
             print(f"🔌 Conexión WebSocket cerrada: {connection_id}")
@@ -91,7 +101,9 @@ class ChatWebSocketController(Controller):
         socket: WebSocket,
         mensaje_service: MensajeService,
         conversacion_service: ConversacionService,
-        cliente_service: ClienteService
+        cliente_service: ClienteService,
+        configuracion_service: ConfiguracionIAService,
+        ai_service: AIService
     ) -> None:
         """Maneja diferentes tipos de mensajes"""
 
@@ -101,12 +113,13 @@ class ChatWebSocketController(Controller):
         try:
             if message_type == "new_client_message":
                 await self._handle_new_client_message(
-                    message, mensaje_service, conversacion_service, cliente_service
+                    message, mensaje_service, conversacion_service, cliente_service,
+                    configuracion_service, ai_service
                 )
 
             elif message_type == "admin_response":
                 await self._handle_admin_response(
-                    message, mensaje_service
+                    message, mensaje_service, conversacion_service
                 )
 
             elif message_type == "join_conversation":
@@ -137,9 +150,11 @@ class ChatWebSocketController(Controller):
         message: Dict[str, Any],
         mensaje_service: MensajeService,
         conversacion_service: ConversacionService,
-        cliente_service: ClienteService
+        cliente_service: ClienteService,
+        configuracion_service: ConfiguracionIAService,
+        ai_service: AIService
     ) -> None:
-        """Maneja mensajes nuevos de clientes"""
+        """Maneja mensajes nuevos de clientes con respuesta de IA"""
 
         client_id = int(message.get("client_id"))
         client_name = message.get("client_name", f"Cliente {client_id}")
@@ -156,11 +171,11 @@ class ChatWebSocketController(Controller):
             # Crear o obtener cliente
             cliente = await cliente_service.get_or_create_client(client_id, client_name)
 
-            # Crear o obtener conversación activa - ahora retorna tupla (conversacion, conversation_id)
+            # Crear o obtener conversación activa
             conversacion, conversation_id = await conversacion_service.get_or_create_active_conversation(client_id)
 
-            # Crear mensaje usando el conversation_id seguro
-            mensaje = await mensaje_service.create_message({
+            # Guardar mensaje del cliente
+            mensaje_cliente = await mensaje_service.create_message({
                 "id_conversacion": conversation_id,
                 "contenido": message_text,
                 "tipo": "cliente",
@@ -168,16 +183,14 @@ class ChatWebSocketController(Controller):
                 "es_derivacion": False
             })
 
-            print(f"💾 Mensaje guardado exitosamente")
-
-            # Broadcast a todas las conexiones usando el conversation_id seguro
+            # Broadcast del mensaje del cliente
             await self._broadcast_message({
                 "type": "new_message",
                 "conversation_id": conversation_id,
                 "client_id": client_id,
                 "client_name": client_name,
                 "message": {
-                    "id": f"temp_{timestamp.timestamp()}",  # ID temporal
+                    "id": f"temp_{timestamp.timestamp()}",
                     "content": message_text,
                     "sender": client_name,
                     "timestamp": timestamp.isoformat(),
@@ -185,15 +198,171 @@ class ChatWebSocketController(Controller):
                 }
             })
 
+            print(f"💾 Mensaje del cliente guardado exitosamente")
+
+            # Obtener historial para contexto de la IA
+            historial = await mensaje_service.get_conversation_messages(conversation_id, limit=10)
+            history_context = []
+            for msg in historial:
+                history_context.append({
+                    "content": msg.contenido,
+                    "message_type": msg.tipo.value,
+                    "sender": msg.remitente
+                })
+
+            # Obtener configuración de la IA usando el método especial
+            config = await configuracion_service.get_config_for_ai()
+
+            # Procesar mensaje con IA
+            print("🤖 Procesando mensaje con IA...")
+            ai_response = await ai_service.process_client_message(
+                message_text,
+                client_name,
+                history_context,
+                config
+            )
+
+            print(f"🤖 Respuesta de IA: {ai_response}")
+
+            if ai_response["should_respond"]:
+                # Guardar respuesta de la IA
+                ai_timestamp = datetime.utcnow()
+                
+                mensaje_ia = await mensaje_service.create_message({
+                    "id_conversacion": conversation_id,
+                    "contenido": ai_response["response"],
+                    "tipo": "ia",
+                    "remitente": "Prism IA",
+                    "es_derivacion": False
+                })
+
+                # Broadcast de la respuesta de la IA
+                await self._broadcast_message({
+                    "type": "ai_response",
+                    "conversation_id": conversation_id,
+                    "client_id": client_id,
+                    "client_name": client_name,
+                    "message": {
+                        "id": f"temp_{ai_timestamp.timestamp()}",
+                        "content": ai_response["response"],
+                        "sender": "Prism IA",
+                        "timestamp": ai_timestamp.isoformat(),
+                        "message_type": "ia"
+                    }
+                })
+
+                print(f"🤖 Respuesta de IA enviada")
+
+                # Verificar si se debe derivar
+                if ai_response["should_transfer"] and ai_response["transfer_area"]:
+                    await self._handle_ai_transfer(
+                        conversation_id,
+                        conversacion_service,
+                        mensaje_service,
+                        ai_response["transfer_area"],
+                        client_id,
+                        client_name
+                    )
+
         except Exception as e:
             print(f"❌ Error manejando mensaje de cliente: {str(e)}")
+            
+            # Enviar respuesta de error al cliente
+            error_timestamp = datetime.utcnow()
+            try:
+                await mensaje_service.create_message({
+                    "id_conversacion": conversation_id,
+                    "contenido": "Disculpa, estoy experimentando dificultades técnicas. Un especialista te atenderá pronto.",
+                    "tipo": "ia",
+                    "remitente": "Prism IA",
+                    "es_derivacion": False
+                })
+
+                await self._broadcast_message({
+                    "type": "ai_response",
+                    "conversation_id": conversation_id,
+                    "client_id": client_id,
+                    "client_name": client_name,
+                    "message": {
+                        "id": f"temp_{error_timestamp.timestamp()}",
+                        "content": "Disculpa, estoy experimentando dificultades técnicas. Un especialista te atenderá pronto.",
+                        "sender": "Prism IA",
+                        "timestamp": error_timestamp.isoformat(),
+                        "message_type": "ia"
+                    }
+                })
+            except:
+                pass  # Si no podemos guardar el mensaje de error, no hacer nada
+
             raise
+
+
+    async def _handle_ai_transfer(
+        self,
+        conversation_id: int,
+        conversacion_service: ConversacionService,
+        mensaje_service: MensajeService,
+        transfer_area,
+        client_id: int,
+        client_name: str
+    ) -> None:
+        """Maneja la derivación automática por IA"""
+        
+        try:
+            print(f"🔄 Derivando conversación {conversation_id} al área: {transfer_area.nombre}")
+            
+            # Transferir conversación
+            await conversacion_service.transfer_to_human(conversation_id, transfer_area.id)
+            
+            # Crear mensaje de derivación
+            transfer_timestamp = datetime.utcnow()
+            transfer_message = f"🔄 La conversación ha sido transferida al área de **{transfer_area.nombre}**"
+            
+            if transfer_area.especialista_asignado:
+                transfer_message += f"\n👨‍💼 Especialista: {transfer_area.especialista_asignado}"
+            
+            if transfer_area.tiempo_respuesta:
+                transfer_message += f"\n⏱️ Tiempo estimado: {transfer_area.tiempo_respuesta} minutos"
+            
+            transfer_message += "\n\nUn especialista humano se pondrá en contacto contigo pronto."
+            
+            # Guardar mensaje de derivación
+            mensaje_derivacion = await mensaje_service.create_message({
+                "id_conversacion": conversation_id,
+                "contenido": transfer_message,
+                "tipo": "sistema",
+                "remitente": "Sistema Prism",
+                "es_derivacion": True
+            })
+            
+            # Broadcast del mensaje de derivación
+            await self._broadcast_message({
+                "type": "transfer_notification",
+                "conversation_id": conversation_id,
+                "client_id": client_id,
+                "client_name": client_name,
+                "transfer_area": transfer_area.nombre,
+                "message": {
+                    "id": f"temp_{transfer_timestamp.timestamp()}",
+                    "content": transfer_message,
+                    "sender": "Sistema Prism",
+                    "timestamp": transfer_timestamp.isoformat(),
+                    "message_type": "sistema",
+                    "is_derivation": True
+                }
+            })
+            
+            print(f"✅ Derivación completada al área: {transfer_area.nombre}")
+            
+        except Exception as e:
+            print(f"❌ Error en derivación automática: {str(e)}")
 
 
     async def _handle_admin_response(
         self,
         message: Dict[str, Any],
-        mensaje_service: MensajeService
+        mensaje_service: MensajeService,
+        conversacion_service: ConversacionService
     ) -> None:
         """Maneja respuestas del administrador"""
 
@@ -209,7 +378,10 @@ class ChatWebSocketController(Controller):
         print(f"👨‍💼 Respuesta de admin para conversación {conversation_id}: {response_text}")
 
         try:
-            # Crear mensaje de respuesta usando directamente el conversation_id
+            # Cambiar estado de conversación a humano respondiendo
+            await conversacion_service.transfer_to_human(conversation_id)
+            
+            # Crear mensaje de respuesta
             mensaje = await mensaje_service.create_message({
                 "id_conversacion": conversation_id,
                 "contenido": response_text,
@@ -225,7 +397,7 @@ class ChatWebSocketController(Controller):
                 "type": "admin_response",
                 "conversation_id": conversation_id,
                 "message": {
-                    "id": f"temp_{timestamp.timestamp()}",  # ID temporal
+                    "id": f"temp_{timestamp.timestamp()}",
                     "content": response_text,
                     "sender": admin_name,
                     "timestamp": timestamp.isoformat(),
@@ -310,22 +482,22 @@ class ChatWebSocketController(Controller):
 
         try:
             conversaciones = await conversacion_service.get_all_active_conversations()
-
+            
             formatted_conversations = []
             for conv in conversaciones:
                 # Obtener información del cliente de forma segura
                 client_id = getattr(conv, 'id_cliente', None)
                 if client_id is None:
                     continue
-
+                    
                 cliente = await cliente_service.get_client_by_id(client_id)
                 client_name = cliente.nombre if cliente else f"Cliente {client_id}"
-
+                
                 # Obtener ID de conversación de forma segura
                 conversation_id = getattr(conv, 'id', None)
                 if conversation_id is None:
                     continue
-
+                
                 formatted_conversations.append({
                     "conversation_id": conversation_id,
                     "client_id": client_id,

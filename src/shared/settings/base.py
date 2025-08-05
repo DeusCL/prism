@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     db_password: str = Field(description="Database password")
     db_name: str = Field(description="Database name")
 
+    gemini_api_key: str = Field(description="Gemini API Key")
+
     @property
     def url_db(self) -> str:
         """Construye la URL de conexión MySQL."""

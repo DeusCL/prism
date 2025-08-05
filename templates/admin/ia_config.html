@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <title>Configuración IA - Biplan</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fa;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: #075e54;
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-radius: 8px;
+        }
+
+        .header-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .header p {
+            margin-top: 5px;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .test-btn {
+            background: #25d366;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.3s;
+        }
+
+        .test-btn:hover {
+            background: #128c7e;
+        }
+
+        .config-section {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #075e54;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #075e54;
+            box-shadow: 0 0 0 3px rgba(7, 94, 84, 0.1);
+        }
+
+        .form-textarea {
+            height: 120px;
+            resize: vertical;
+            font-family: 'Courier New', monospace;
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+        }
+
+        .form-range {
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .range-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .range-value {
+            font-weight: 600;
+            color: #075e54;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #075e54;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #128c7e;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+
+        .actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-start;
+        }
+
+        .status-message {
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .loading {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            color: #666;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #075e54;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            line-height: 1.4;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div>
+                <h1>Configuración de IA</h1>
+                <p>Configura el comportamiento y parámetros del asistente de IA</p>
+            </div>
+            <button class="test-btn" onclick="testAIConnection()">
+                <i class="fa-solid fa-flask-vial"></i> Probar Conexión
+            </button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Status Message -->
+        <div class="status-message" id="statusMessage"></div>
+
+        <!-- Loading -->
+        <div class="loading" id="loadingIndicator">
+            <div class="spinner"></div>
+            <span>Cargando configuración...</span>
+        </div>
+
+        <!-- Configuration Form -->
+        <form id="configForm" style="display: none;">
+            <!-- System Prompt -->
+            <div class="config-section">
+                <h3 class="section-title">
+                    <i class="fa-solid fa-robot"></i>
+                    Prompt del Sistema
+                </h3>
+                
+                <div class="form-group">
+                    <label class="form-label">Instrucciones para la IA</label>
+                    <textarea class="form-input form-textarea" id="systemPrompt" placeholder="Instrucciones detalladas para el comportamiento de la IA..."></textarea>
+                    <div class="help-text">
+                        Define cómo debe comportarse la IA, qué servicios ofrece Biplan y cuándo debe derivar consultas.
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Parameters -->
+            <div class="config-section">
+                <h3 class="section-title">
+                    <i class="fa-solid fa-sliders"></i>
+                    Parámetros de Generación
+                </h3>
+                
+                <div class="two-column">
+                    <div class="form-group">
+                        <label class="form-label">Temperatura</label>
+                        <div class="range-label">
+                            <span>Conservadora (0.0)</span>
+                            <span class="range-value" id="tempValue">0.7</span>
+                            <span>Creativa (2.0)</span>
+                        </div>
+                        <input type="range" class="form-range" id="temperatura" min="0" max="2" step="0.1" value="0.7" oninput="updateTempValue(this.value)">
+                        <div class="help-text">
+                            Controla la creatividad de las respuestas. Valores bajos = más consistente, valores altos = más creativo.
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Modelo</label>
+                        <select class="form-select" id="model">
+                            <option value="gemini-pro">Gemini Pro</option>
+                            <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                        </select>
+                        <div class="help-text">
+                            Modelo de IA de Google Gemini a utilizar.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="two-column">
+                    <div class="form-group">
+                        <label class="form-label">Tokens Mínimos</label>
+                        <input type="number" class="form-input" id="minTokens" min="1" max="500" value="50">
+                        <div class="help-text">
+                            Mínimo número de tokens en la respuesta.
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Tokens Máximos</label>
+                        <input type="number" class="form-input" id="maxTokens" min="50" max="2000" value="300">
+                        <div class="help-text">
+                            Máximo número de tokens en la respuesta.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Behavior Settings -->
+            <div class="config-section">
+                <h3 class="section-title">
+                    <i class="fa-solid fa-gear"></i>
+                    Configuración de Comportamiento
+                </h3>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" class="checkbox" id="autoDerivacion" checked>
+                        <label class="form-label" for="autoDerivacion">Auto-derivación activa</label>
+                    </div>
+                    <div class="help-text">
+                        Permite que la IA derive automáticamente conversaciones a especialistas humanos.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="config-section">
+                <div class="actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-save"></i> Guardar Configuración
+                    </button>
+                    <button type="button" class="btn btn-warning" onclick="resetToDefault()">
+                        <i class="fa-solid fa-refresh"></i> Valores por Defecto
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // Variables globales
+        let currentConfig = null;
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCurrentConfig();
+        });
+
+        // Cargar configuración actual
+        async function loadCurrentConfig() {
+            showLoading(true);
+            
+            try {
+                const response = await fetch('/api/configuracion-ia/');
+                
+                if (response.ok) {
+                    currentConfig = await response.json();
+                    populateForm(currentConfig);
+                    showStatus('Configuración cargada exitosamente', 'success');
+                } else {
+                    throw new Error('Error al cargar configuración');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus('Error al cargar la configuración', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Poblar formulario con datos
+        function populateForm(config) {
+            document.getElementById('systemPrompt').value = config.system_prompt || '';
+            document.getElementById('temperatura').value = config.temperatura || 0.7;
+            document.getElementById('tempValue').textContent = config.temperatura || 0.7;
+            document.getElementById('minTokens').value = config.min_tokens || 50;
+            document.getElementById('maxTokens').value = config.max_tokens || 300;
+            document.getElementById('model').value = config.model || 'gemini-pro';
+            document.getElementById('autoDerivacion').checked = config.auto_derivacion_activa !== false;
+
+            document.getElementById('configForm').style.display = 'block';
+        }
+
+        // Actualizar valor de temperatura
+        function updateTempValue(value) {
+            document.getElementById('tempValue').textContent = value;
+        }
+
+        // Manejar envío del formulario
+        document.getElementById('configForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await saveConfiguration();
+        });
+
+        // Guardar configuración
+        async function saveConfiguration() {
+            showLoading(true);
+
+            const configData = {
+                system_prompt: document.getElementById('systemPrompt').value.trim(),
+                temperatura: parseFloat(document.getElementById('temperatura').value),
+                min_tokens: parseInt(document.getElementById('minTokens').value),
+                max_tokens: parseInt(document.getElementById('maxTokens').value),
+                model: document.getElementById('model').value,
+                auto_derivacion_activa: document.getElementById('autoDerivacion').checked
+            };
+
+            // Validaciones básicas
+            if (!configData.system_prompt || configData.system_prompt.length < 10) {
+                showStatus('El prompt del sistema debe tener al menos 10 caracteres', 'error');
+                showLoading(false);
+                return;
+            }
+
+            if (configData.min_tokens >= configData.max_tokens) {
+                showStatus('Los tokens mínimos deben ser menores que los máximos', 'error');
+                showLoading(false);
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/configuracion-ia/', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(configData)
+                });
+
+                if (response.ok) {
+                    const updatedConfig = await response.json();
+                    currentConfig = updatedConfig;
+                    showStatus('Configuración guardada exitosamente', 'success');
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Error al guardar configuración');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus(`Error: ${error.message}`, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Resetear a valores por defecto
+        async function resetToDefault() {
+            if (!confirm('¿Estás seguro de que quieres resetear la configuración a los valores por defecto?')) {
+                return;
+            }
+
+            showLoading(true);
+
+            try {
+                const response = await fetch('/api/configuracion-ia/reset', {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    const defaultConfig = await response.json();
+                    populateForm(defaultConfig);
+                    showStatus('Configuración reseteada a valores por defecto', 'success');
+                } else {
+                    throw new Error('Error al resetear configuración');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus('Error al resetear la configuración', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Probar conexión con IA
+        async function testAIConnection() {
+            showLoading(true);
+
+            try {
+                const response = await fetch('/api/configuracion-ia/test');
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    showStatus(`✅ Conexión exitosa: ${result.test_response}`, 'success');
+                } else {
+                    showStatus(`❌ Error de conexión: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus('Error al probar la conexión', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Mostrar/ocultar loading
+        function showLoading(show) {
+            const loading = document.getElementById('loadingIndicator');
+            const form = document.getElementById('configForm');
+
+            if (show) {
+                loading.style.display = 'flex';
+                form.style.display = 'none';
+            } else {
+                loading.style.display = 'none';
+                if (currentConfig) {
+                    form.style.display = 'block';
+                }
+            }
+        }
+
+        // Mostrar mensaje de estado
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.textContent = message;
+            statusDiv.className = `status-message status-${type}`;
+            statusDiv.style.display = 'block';
+
+            // Auto-ocultar después de 5 segundos para mensajes de éxito
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 5000);
+            }
+        }
+    </script>
+</body>
+</html>
