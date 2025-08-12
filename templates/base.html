@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <title>{% block title %}Prism{% endblock %}</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* Navbar */
+        .navbar {
+            background: #075e54;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .navbar-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 60px;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+            text-decoration: none;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .navbar-brand:hover {
+            color: #25d366;
+        }
+
+        .navbar-brand .logo {
+            width: 32px;
+            height: 32px;
+            background: #25d366;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .navbar-nav {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            gap: 5px;
+        }
+
+        .nav-item {
+            position: relative;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: all 0.3s;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .nav-link:hover {
+            background: rgba(255,255,255,0.1);
+            color: #25d366;
+        }
+
+        .nav-link.active {
+            background: #25d366;
+            color: white;
+        }
+
+        .nav-link .icon {
+            font-size: 16px;
+        }
+
+        /* Dropdown */
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown-toggle::after {
+            content: '\f078';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            margin-left: 8px;
+            font-size: 12px;
+            transition: transform 0.3s;
+        }
+
+        .dropdown.open .dropdown-toggle::after {
+            transform: rotate(180deg);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            min-width: 180px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 6px;
+            padding: 8px 0;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .dropdown.open .dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            color: #333;
+            text-decoration: none;
+            transition: background 0.2s;
+            font-size: 14px;
+        }
+
+        .dropdown-item:hover {
+            background: #f8f9fa;
+            color: #075e54;
+        }
+
+        .dropdown-item .icon {
+            color: #666;
+            font-size: 14px;
+            width: 16px;
+        }
+
+        /* Mobile menu toggle */
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 8px;
+        }
+
+        /* Main content */
+        .main-content {
+            min-height: calc(100vh - 60px);
+        }
+
+        /* Utilities */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #075e54;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #128c7e;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        /* Page header */
+        .page-header {
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 20px 0;
+            margin-bottom: 30px;
+        }
+
+        .page-header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .page-header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        /* Status indicators */
+        .status-online {
+            color: #28a745;
+        }
+
+        .status-offline {
+            color: #dc3545;
+        }
+
+        .status-warning {
+            color: #ffc107;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .navbar-container {
+                padding: 0 15px;
+            }
+
+            .mobile-menu-toggle {
+                display: block;
+            }
+
+            .navbar-nav {
+                position: fixed;
+                top: 60px;
+                left: -100%;
+                width: 250px;
+                height: calc(100vh - 60px);
+                background: #075e54;
+                flex-direction: column;
+                padding: 20px 0;
+                transition: left 0.3s;
+                gap: 0;
+            }
+
+            .navbar-nav.open {
+                left: 0;
+            }
+
+            .nav-link {
+                padding: 12px 20px;
+                border-radius: 0;
+                justify-content: flex-start;
+            }
+
+            .dropdown-menu {
+                position: static;
+                box-shadow: none;
+                background: rgba(255,255,255,0.1);
+                margin: 0 20px;
+                border-radius: 6px;
+            }
+
+            .dropdown-item {
+                color: white;
+                padding: 8px 16px;
+            }
+
+            .dropdown-item:hover {
+                background: rgba(255,255,255,0.1);
+                color: #25d366;
+            }
+
+            .container {
+                padding: 0 15px;
+            }
+
+            .page-header h1 {
+                font-size: 24px;
+            }
+        }
+
+        /* Overlay for mobile menu */
+        .navbar-overlay {
+            display: none;
+            position: fixed;
+            top: 60px;
+            left: 0;
+            width: 100%;
+            height: calc(100vh - 60px);
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+
+        .navbar-overlay.open {
+            display: block;
+        }
+
+        /* Custom styles for specific pages */
+        {% block extra_styles %}{% endblock %}
+    </style>
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="/" class="navbar-brand">
+                <div class="logo">P</div>
+                Prism
+            </a>
+
+            <ul class="navbar-nav" id="navbarNav">
+                <li class="nav-item">
+                    <a href="/chats" class="nav-link {% if page == 'chats' %}active{% endif %}">
+                        <i class="icon fa-solid fa-comments"></i>
+                        Chats
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a href="/simulador" class="nav-link {% if page == 'simulador' %}active{% endif %}">
+                        <i class="icon fa-solid fa-mobile-screen"></i>
+                        Simulador
+                    </a>
+                </li>
+
+                <li class="nav-item dropdown" id="adminDropdown">
+                    <a href="#" class="nav-link dropdown-toggle {% if page in ['areas', 'iaconfig'] %}active{% endif %}">
+                        <i class="icon fa-solid fa-gear"></i>
+                        Administración
+                    </a>
+                    <div class="dropdown-menu">
+                        <a href="/admin/areas" class="dropdown-item {% if page == 'areas' %}active{% endif %}">
+                            <i class="icon fa-solid fa-sitemap"></i>
+                            Áreas
+                        </a>
+                        <a href="/admin/iaconfig" class="dropdown-item {% if page == 'iaconfig' %}active{% endif %}">
+                            <i class="icon fa-solid fa-robot"></i>
+                            Configuración IA
+                        </a>
+                    </div>
+                </li>
+            </ul>
+
+            <button class="mobile-menu-toggle" id="mobileMenuToggle">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Mobile overlay -->
+    <div class="navbar-overlay" id="navbarOverlay"></div>
+
+    <!-- Main content -->
+    <main class="main-content">
+        {% block content %}
+        <div class="page-header">
+            <div class="container">
+                <h1>Bienvenido a Prism</h1>
+                <p>Sistema de gestión de chat inteligente</p>
+            </div>
+        </div>
+
+        <div class="container">
+            <p>Contenido de la página aquí...</p>
+        </div>
+        {% endblock %}
+    </main>
+
+    <!-- JavaScript -->
+    <script>
+        // Mobile menu toggle
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const navbarNav = document.getElementById('navbarNav');
+        const navbarOverlay = document.getElementById('navbarOverlay');
+
+        function toggleMobileMenu() {
+            navbarNav.classList.toggle('open');
+            navbarOverlay.classList.toggle('open');
+
+            // Change icon
+            const icon = mobileMenuToggle.querySelector('i');
+            if (navbarNav.classList.contains('open')) {
+                icon.className = 'fa-solid fa-times';
+            } else {
+                icon.className = 'fa-solid fa-bars';
+            }
+        }
+
+        mobileMenuToggle.addEventListener('click', toggleMobileMenu);
+        navbarOverlay.addEventListener('click', toggleMobileMenu);
+
+        // Dropdown functionality
+        const dropdowns = document.querySelectorAll('.dropdown');
+
+        dropdowns.forEach(dropdown => {
+            const toggle = dropdown.querySelector('.dropdown-toggle');
+
+            toggle.addEventListener('click', function(e) {
+                e.preventDefault();
+
+                // Close other dropdowns
+                dropdowns.forEach(other => {
+                    if (other !== dropdown) {
+                        other.classList.remove('open');
+                    }
+                });
+
+                // Toggle current dropdown
+                dropdown.classList.toggle('open');
+            });
+        });
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.dropdown')) {
+                dropdowns.forEach(dropdown => {
+                    dropdown.classList.remove('open');
+                });
+            }
+        });
+
+        // Close mobile menu on window resize
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                navbarNav.classList.remove('open');
+                navbarOverlay.classList.remove('open');
+                mobileMenuToggle.querySelector('i').className = 'fa-solid fa-bars';
+            }
+        });
+
+        {% block extra_scripts %}{% endblock %}
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

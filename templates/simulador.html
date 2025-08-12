@@ -1,371 +1,369 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cliente Móvil - Biplan</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+{% extends "base.html" %}
 
-        /* Mensajes del sistema */
-        .message.system {
-            justify-content: center;
-            margin-bottom: 20px;
-        }
+{% block title %}Simulador - Prism{% endblock %}
 
-        .message.system .message-bubble {
-            background: #e3f2fd;
-            color: #1565c0;
-            border: 1px solid #bbdefb;
-            max-width: 90%;
-            text-align: center;
-            font-size: 13px;
-            border-radius: 15px;
-        }
+{% block extra_styles %}
 
-        .message.system .message-time {
-            text-align: center;
-            margin-top: 8px;
-            font-size: 10px;
-            opacity: 0.8;
-        }
+.simulator-layout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 60px);
+    background: linear-gradient(135deg, #128c7e 0%, #075e54 100%);
+    padding: 20px;
+}
 
-        .ai-badge {
-            background: #25d366;
-            color: white;
-            font-size: 9px;
-            padding: 1px 4px;
-            border-radius: 3px;
-            margin-left: 5px;
-        }
+.phone-container {
+    width: 375px;
+    height: 667px;
+    background: white;
+    border-radius: 25px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #128c7e;
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
+.phone-header {
+    background: #075e54;
+    color: white;
+    padding: 15px 20px;
+    text-align: center;
+    font-weight: 500;
+}
 
-        .phone-container {
-            width: 375px;
-            height: 667px;
-            background: white;
-            border-radius: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
+/* Selector de cliente */
+.client-selector {
+    background: #f0f2f5;
+    padding: 15px 20px;
+    border-bottom: 1px solid #e5e7eb;
+}
 
-        .phone-header {
-            background: #075e54;
-            color: white;
-            padding: 15px 20px;
-            text-align: center;
-            font-weight: 500;
-        }
+.client-selector h3 {
+    font-size: 14px;
+    margin-bottom: 10px;
+    color: #333;
+}
 
-        /* Selector de cliente */
-        .client-selector {
-            background: #f0f2f5;
-            padding: 15px 20px;
-            border-bottom: 1px solid #e5e7eb;
-        }
+.client-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
 
-        .client-selector h3 {
-            font-size: 14px;
-            margin-bottom: 10px;
-            color: #333;
-        }
+.client-card {
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: center;
+}
 
-        .client-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
+.client-card:hover {
+    border-color: #075e54;
+    transform: translateY(-2px);
+}
 
-        .client-card {
-            background: white;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 12px;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-align: center;
-        }
+.client-card.active {
+    border-color: #075e54;
+    background: #e8f5e8;
+}
 
-        .client-card:hover {
-            border-color: #075e54;
-            transform: translateY(-2px);
-        }
+.client-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #075e54;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 8px;
+    font-weight: bold;
+    font-size: 16px;
+}
 
-        .client-card.active {
-            border-color: #075e54;
-            background: #e8f5e8;
-        }
+.client-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 2px;
+}
 
-        .client-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: #075e54;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 8px;
-            font-weight: bold;
-            font-size: 16px;
-        }
+.client-id {
+    font-size: 10px;
+    color: #666;
+}
 
-        .client-name {
-            font-size: 12px;
-            font-weight: 500;
-            color: #333;
-            margin-bottom: 2px;
-        }
+/* Chat area */
+.chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #e5ddd5;
+    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="40" height="40" fill="%23e5ddd5"/><circle cx="20" cy="20" r="1" fill="%23ffffff" opacity="0.1"/></svg>');
+}
 
-        .client-id {
-            font-size: 10px;
-            color: #666;
-        }
+.messages-container {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+}
 
-        /* Chat area */
-        .chat-area {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-            background: #e5ddd5;
-            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="40" height="40" fill="%23e5ddd5"/><circle cx="20" cy="20" r="1" fill="%23ffffff" opacity="0.1"/></svg>');
-        }
+.message {
+    margin-bottom: 15px;
+    display: flex;
+}
 
-        .messages-container {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-        }
+.message.sent {
+    justify-content: flex-end;
+}
 
-        .message {
-            margin-bottom: 15px;
-            display: flex;
-        }
+.message.received {
+    justify-content: flex-start;
+}
 
-        .message.sent {
-            justify-content: flex-end;
-        }
+.message-bubble {
+    max-width: 80%;
+    padding: 8px 12px;
+    border-radius: 8px;
+    position: relative;
+    word-wrap: break-word;
+}
 
-        .message.received {
-            justify-content: flex-start;
-        }
+.message.sent .message-bubble {
+    background: #dcf8c6;
+    border-bottom-right-radius: 2px;
+}
 
-        .message-bubble {
-            max-width: 80%;
-            padding: 8px 12px;
-            border-radius: 8px;
-            position: relative;
-            word-wrap: break-word;
-        }
+.message.received .message-bubble {
+    background: white;
+    border-bottom-left-radius: 2px;
+}
 
-        .message.sent .message-bubble {
-            background: #dcf8c6;
-            border-bottom-right-radius: 2px;
-        }
+.message-time {
+    font-size: 11px;
+    color: #666;
+    margin-top: 2px;
+    text-align: right;
+}
 
-        .message.received .message-bubble {
-            background: white;
-            border-bottom-left-radius: 2px;
-        }
+.message.received .message-time {
+    text-align: left;
+}
 
-        .message-time {
-            font-size: 11px;
-            color: #666;
-            margin-top: 2px;
-            text-align: right;
-        }
+.ai-badge {
+    background: #25d366;
+    color: white;
+    font-size: 9px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    margin-left: 5px;
+}
 
-        .message.received .message-time {
-            text-align: left;
-        }
+/* Mensajes del sistema */
+.message.system {
+    justify-content: center;
+    margin-bottom: 20px;
+}
 
-        .ai-badge {
-            background: #25d366;
-            color: white;
-            font-size: 9px;
-            padding: 1px 4px;
-            border-radius: 3px;
-            margin-left: 5px;
-        }
+.message.system .message-bubble {
+    background: #e3f2fd;
+    color: #1565c0;
+    border: 1px solid #bbdefb;
+    max-width: 90%;
+    text-align: center;
+    font-size: 13px;
+    border-radius: 15px;
+}
 
-        /* Input area */
-        .input-area {
-            background: #f0f2f5;
-            padding: 10px 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+.message.system .message-time {
+    text-align: center;
+    margin-top: 8px;
+    font-size: 10px;
+    opacity: 0.8;
+}
 
-        .message-input {
-            flex: 1;
-            background: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 20px;
-            outline: none;
-            font-size: 14px;
-        }
+/* Input area */
+.input-area {
+    background: #f0f2f5;
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
 
-        .message-input:disabled {
-            background: #f5f5f5;
-            color: #999;
-        }
+.message-input {
+    flex: 1;
+    background: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 20px;
+    outline: none;
+    font-size: 14px;
+}
 
-        .send-button {
-            width: 40px;
-            height: 40px;
-            background: #075e54;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.3s;
-        }
+.message-input:disabled {
+    background: #f5f5f5;
+    color: #999;
+}
 
-        .send-button:hover:not(:disabled) {
-            background: #128c7e;
-        }
+.send-button {
+    width: 40px;
+    height: 40px;
+    background: #075e54;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s;
+}
 
-        .send-button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
+.send-button:hover:not(:disabled) {
+    background: #128c7e;
+}
 
-        /* Estado sin cliente seleccionado */
-        .no-client-selected {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            color: #666;
-            text-align: center;
-            padding: 40px;
-        }
+.send-button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
 
-        .no-client-selected .icon {
-            font-size: 48px;
-            margin-bottom: 15px;
-            opacity: 0.5;
-        }
+/* Estado sin cliente seleccionado */
+.no-client-selected {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #666;
+    text-align: center;
+    padding: 40px;
+}
 
-        /* Indicador de conexión */
-        .connection-status {
-            position: absolute;
-            top: 45px;
-            right: 20px;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #25d366;
-            border: 2px solid white;
-        }
+.no-client-selected .icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
 
-        .connection-status.disconnected {
-            background: #f44336;
-        }
+/* Indicador de conexión */
+.connection-status {
+    position: absolute;
+    top: 45px;
+    right: 20px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #25d366;
+    border: 2px solid white;
+}
 
-        /* Responsive para desktop */
-        @media (min-width: 768px) {
-            body {
-                background: linear-gradient(135deg, #128c7e 0%, #075e54 100%);
-            }
+.connection-status.disconnected {
+    background: #f44336;
+}
 
-            .phone-container {
-                box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-            }
-        }
+/* Animación de escritura */
+.typing-indicator {
+    display: none;
+    align-items: center;
+    justify-content: flex-start;
+    margin-bottom: 15px;
+}
 
-        /* Animación de escritura */
-        .typing-indicator {
-            display: none;
-            align-items: center;
-            justify-content: flex-start;
-            margin-bottom: 15px;
-        }
+.typing-bubble {
+    background: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border-bottom-left-radius: 2px;
+}
 
-        .typing-bubble {
-            background: white;
-            padding: 8px 12px;
-            border-radius: 8px;
-            border-bottom-left-radius: 2px;
-        }
+.typing-dots {
+    display: flex;
+    gap: 3px;
+}
 
-        .typing-dots {
-            display: flex;
-            gap: 3px;
-        }
+.typing-dots span {
+    width: 6px;
+    height: 6px;
+    background: #666;
+    border-radius: 50%;
+    animation: typing 1.4s infinite ease-in-out;
+}
 
-        .typing-dots span {
-            width: 6px;
-            height: 6px;
-            background: #666;
-            border-radius: 50%;
-            animation: typing 1.4s infinite ease-in-out;
-        }
+.typing-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+}
 
-        .typing-dots span:nth-child(2) {
-            animation-delay: 0.2s;
-        }
+.typing-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+}
 
-        .typing-dots span:nth-child(3) {
-            animation-delay: 0.4s;
-        }
+@keyframes typing {
+    0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.4;
+    }
+    30% {
+        transform: translateY(-10px);
+        opacity: 1;
+    }
+}
 
-        @keyframes typing {
-            0%, 60%, 100% {
-                transform: translateY(0);
-                opacity: 0.4;
-            }
-            30% {
-                transform: translateY(-10px);
-                opacity: 1;
-            }
-        }
+/* Status messages */
+.status-message {
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 15px;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 1000;
+}
 
-        /* Status messages */
-        .status-message {
-            position: absolute;
-            bottom: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 15px;
-            font-size: 12px;
-            opacity: 0;
-            transition: opacity 0.3s;
-            z-index: 1000;
-        }
+.status-message.show {
+    opacity: 1;
+}
 
-        .status-message.show {
-            opacity: 1;
-        }
-    </style>
-</head>
-<body>
+/* Responsive para desktop */
+@media (min-width: 768px) {
+    .simulator-layout {
+        background: linear-gradient(135deg, #128c7e 0%, #075e54 100%);
+    }
+
+    .phone-container {
+        box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+}
+
+/* Responsive móvil */
+@media (max-width: 400px) {
+    .simulator-layout {
+        padding: 10px;
+    }
+
+    .phone-container {
+        width: 100%;
+        max-width: 375px;
+        height: calc(100vh - 80px);
+        border-radius: 15px;
+    }
+}
+
+{% endblock %}
+
+{% block content %}
+<div class="simulator-layout">
     <div class="phone-container">
         <div class="phone-header">
             <div>Chat Biplan</div>
@@ -436,10 +434,15 @@
         <!-- Status indicator -->
         <div class="status-message" id="statusMessage"></div>
     </div>
+</div>
+{% endblock %}
 
-    <!-- Incluir el cliente WebSocket -->
-    <script src="/static/js/chat-websocket.js"></script>
+{% block extra_head %}
+<!-- Incluir el cliente WebSocket -->
+<script src="/static/js/chat-websocket.js"></script>
+{% endblock %}
 
+{% block scripts %}
     <script>
         // Variables globales
         let currentClient = null;
@@ -718,5 +721,4 @@
             getClients: () => clients
         };
     </script>
-</body>
-</html>
+{% endblock %}
