@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-    <title>Configuración IA - Biplan</title>
+    <title>Configuración IA - Prism</title>
     <style>
         * {
             margin: 0;
@@ -270,7 +270,7 @@
             .container {
                 padding: 10px;
             }
-            
+
             .two-column {
                 grid-template-columns: 1fr;
             }
@@ -318,7 +318,7 @@
                     <i class="fa-solid fa-robot"></i>
                     Prompt del Sistema
                 </h3>
-                
+
                 <div class="form-group">
                     <label class="form-label">Instrucciones para la IA</label>
                     <textarea class="form-input form-textarea" id="systemPrompt" placeholder="Instrucciones detalladas para el comportamiento de la IA..."></textarea>
@@ -334,7 +334,7 @@
                     <i class="fa-solid fa-sliders"></i>
                     Parámetros de Generación
                 </h3>
-                
+
                 <div class="two-column">
                     <div class="form-group">
                         <label class="form-label">Temperatura</label>
@@ -424,10 +424,10 @@
         // Cargar configuración actual
         async function loadCurrentConfig() {
             showLoading(true);
-            
+
             try {
                 const response = await fetch('/api/configuracion-ia/');
-                
+
                 if (response.ok) {
                     currentConfig = await response.json();
                     populateForm(currentConfig);

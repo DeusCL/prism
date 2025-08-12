@@ -24,7 +24,7 @@ class AIService:
             raise ValueError("GEMINI_API_KEY no encontrada en variables de entorno")
 
         genai.configure(api_key=api_key)
-        self.client = genai.GenerativeModel('gemini-pro')
+        self.client = genai.GenerativeModel('gemini-2.0-flash')
         print("✅ Cliente Gemini inicializado")
 
 
